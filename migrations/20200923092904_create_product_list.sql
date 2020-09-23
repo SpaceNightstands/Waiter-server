@@ -1,4 +1,4 @@
--- Your SQL goes here
+-- Add migration script here
 CREATE TABLE products (
 	id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	name TINYTEXT NOT NULL
