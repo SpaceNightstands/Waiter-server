@@ -25,13 +25,12 @@ async fn main() -> std::io::Result<()> {
 	 .expect("Couldn't connect to database");
 
 	use actix_web::{HttpServer, App};
-	use api::*;
 	HttpServer::new(move ||
 		App::new()
 				.data(conn.clone())
 				.wrap(actix_web::middleware::Logger::default())
 				.service(get_jwt)
-				.service(get_menu_service())
+				.service(api::get_service("/"))
 	).bind("0.0.0.0:8080")?
 	 .run()
 	 .await

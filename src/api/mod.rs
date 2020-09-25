@@ -7,9 +7,15 @@ mod prelude {
 
 mod menu;
 
-use actix_web::web;
-pub fn get_menu_service() -> actix_web::Scope{
-	use menu::*;
-	web::scope("/menu")
-    .route("", web::get().to(get_menu))
+//Temporary
+pub use menu::get_menu_service;
+
+pub fn get_service(scope: &str) -> actix_web::Scope{
+	actix_web::web::scope(scope)
+    .service(menu::get_menu_service())
+    .route("", actix_web::web::get().to(hello_world))
+}
+
+async fn hello_world() -> impl actix_web::Responder {
+	"Hello, World"
 }
