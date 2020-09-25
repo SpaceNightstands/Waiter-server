@@ -7,7 +7,9 @@ mod prelude {
 
 mod menu;
 
+use actix_web::web;
 pub fn get_menu_service() -> actix_web::Scope{
-	actix_web::web::scope("/menu")
-    .service(menu::get_menu)
+	use menu::*;
+	web::scope("/menu")
+    .route("", web::get().to(get_menu))
 }
