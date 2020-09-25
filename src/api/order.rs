@@ -1,11 +1,11 @@
 use super::prelude::*;
 
 pub fn get_service() -> actix_web::Scope{
-	web::scope("/menu")
+	web::scope("/order")
     .route("", web::get().to(get_menu))
 }
 
-async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
+async fn get_orders(db: web::Data<MySqlPool>) -> impl Responder {
 	let products = sqlx::query_as!(
 		model::Product,
 		"SELECT * FROM products"
@@ -21,6 +21,5 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 	web::Json(products)
 }
 
-//TODO: add product
-//TODO: delete product
-//TODO: edit product
+//TODO: add order
+//TODO: delete order

@@ -6,16 +6,12 @@ mod prelude {
 }
 
 mod menu;
+mod order;
 
-//Temporary
-pub use menu::get_menu_service;
-
+//TODO: Add auth guard
 pub fn get_service(scope: &str) -> actix_web::Scope{
 	actix_web::web::scope(scope)
-    .service(menu::get_menu_service())
-    .route("", actix_web::web::get().to(hello_world))
+    .service(menu::get_service())
+    .service(order::get_service())
 }
 
-async fn hello_world() -> impl actix_web::Responder {
-	"Hello, World"
-}

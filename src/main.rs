@@ -2,12 +2,6 @@ mod model;
 mod api;
 use actix_web::Responder;
 
-//TODO: move services in an api module
-#[actix_web::get("/auth")]
-async fn get_jwt() -> impl Responder {
-	"Hello, world"
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
 	//Parse .env (should make this optional)
@@ -29,7 +23,6 @@ async fn main() -> std::io::Result<()> {
 		App::new()
 				.data(conn.clone())
 				.wrap(actix_web::middleware::Logger::default())
-				.service(get_jwt)
 				.service(api::get_service("/"))
 	).bind("0.0.0.0:8080")?
 	 .run()
