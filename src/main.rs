@@ -1,32 +1,11 @@
 mod model;
-use actix_web::{
-	Responder,
-	web
-};
-use sqlx::MySqlPool;
-use futures::stream::StreamExt;
+mod api;
+use actix_web::Responder;
 
 //TODO: move services in an api module
 #[actix_web::get("/auth")]
 async fn get_jwt() -> impl Responder {
 	"Hello, world"
-}
-
-#[actix_web::get("/menu")]
-async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
-	let products = sqlx::query_as!(
-		model::Product,
-		"SELECT * FROM products"
-	).fetch(db.get_ref())
-	 .filter_map(
-		 |item| futures::future::ready(
-				match item {
-					Ok(item) => Some(format!("{:?}", item)),
-					Err(_) => None
-				}
-		 )
-	 ).collect::<Vec<String>>().await;
-	web::Json(products)
 }
 
 #[actix_web::main]
@@ -46,17 +25,19 @@ async fn main() -> std::io::Result<()> {
 	 .expect("Couldn't connect to database");
 
 	use actix_web::{HttpServer, App};
+	use api::*;
 	HttpServer::new(move ||
 		App::new()
 				.data(conn.clone())
 				.wrap(actix_web::middleware::Logger::default())
 				.service(get_jwt)
-				.service(get_menu)
+				.service(get_menu_service())
 	).bind("0.0.0.0:8080")?
 	 .run()
 	 .await
 }
 
+use sqlx::MySqlPool;
 async fn get_database(db_url: &str)->Result<MySqlPool, sqlx::Error> {
 	let conn = MySqlPool::connect(db_url).await?;
 	/*Check last order list addition,
