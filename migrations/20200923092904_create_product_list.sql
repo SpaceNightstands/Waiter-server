@@ -1,5 +1,6 @@
 -- Add migration script here
 CREATE TABLE products (
 	id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	kind TINYINT UNSIGNED NOT NULL,
 	name TINYTEXT NOT NULL
 )

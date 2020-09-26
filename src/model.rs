@@ -1,6 +1,7 @@
 #[derive(serde::Serialize)]
 pub struct Product {
 	pub id: u32,
+	pub kind: u8,
 	pub name: String 
 }
 
