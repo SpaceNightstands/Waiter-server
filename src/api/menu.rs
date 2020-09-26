@@ -28,7 +28,6 @@ async fn put_menu(db: web::Data<MySqlPool>, name: String) -> Result<impl Respond
 	use sqlx::prelude::Row;
 
 	log::debug!("Inserting Product named \"{}\" into product list", name);
-	// TODO: avoid unwrap
 	let tx = db.get_ref()
 		.begin()
 		.await
@@ -49,8 +48,29 @@ async fn put_menu(db: web::Data<MySqlPool>, name: String) -> Result<impl Respond
 	Ok(web::Json(product))
 }
 
-/*TODO: delete product sqlx::query!(
-		"DELETE FROM products WHERE id = ?",
+async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, Error> {
+	//To index into the row with get
+	use sqlx::prelude::Row;
+
+	log::debug!("Deleting Product {} from product list", id);
+	let tx = db.get_ref()
+		.begin()
+		.await
+		.map_err(Error::new)?;
+	let product = sqlx::query!(
+		"DELETE FROM products WHERE id = ? RETURNING id, kind, name",
 		id	
-	)*/
+	).fetch_one(db.get_ref())
+	 .await
+	 .map(
+		 |item| model::Product{
+				id: item.get(0),
+				kind: item.get(1),
+				name: item.get(2)
+			}
+	 ).map_err(Error::new)?;
+	tx.commit().await.map_err(Error::new)?;
+	Ok(web::Json(product))
+}
+
 //TODO: edit product
