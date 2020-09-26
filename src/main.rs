@@ -1,5 +1,6 @@
 mod model;
 mod api;
+mod error;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

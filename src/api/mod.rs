@@ -1,5 +1,6 @@
 mod prelude {
 	pub(crate) use crate::model;
+	pub(crate) use crate::error::Error;
 	pub(crate) use actix_web::{web, Responder};
 	pub(crate) use sqlx::MySqlPool;
 	pub(crate) use futures::stream::StreamExt;
