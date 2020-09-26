@@ -7,11 +7,13 @@ mod prelude {
 
 mod menu;
 mod order;
+mod auth;
 
 //TODO: Add auth guard
 pub fn get_service(scope: &str) -> actix_web::Scope{
 	actix_web::web::scope(scope)
     .service(menu::get_service())
     .service(order::get_service())
+    .service(auth::get_service())
 }
 

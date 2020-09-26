@@ -2,7 +2,7 @@ use super::prelude::*;
 
 pub fn get_service() -> actix_web::Scope{
 	web::scope("/order")
-    .route("", web::get().to(get_menu))
+    .route("", web::get().to(get_orders))
 }
 
 async fn get_orders(db: web::Data<MySqlPool>) -> impl Responder {

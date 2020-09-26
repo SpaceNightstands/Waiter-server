@@ -10,3 +10,5 @@ pub fn get_service() -> actix_web::Scope{
 async fn get_jwt() -> impl Responder {
 	"Hello, world"
 }
+
+//TODO: Create Route Guard

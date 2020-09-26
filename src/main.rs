@@ -1,6 +1,5 @@
 mod model;
 mod api;
-use actix_web::Responder;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
