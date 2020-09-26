@@ -8,18 +8,15 @@ pub fn get_service() -> actix_web::Scope{
 }
 
 async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
+	use model::Product;
+
 	let products = sqlx::query_as!(
-		model::Product,
+		Product,
 		"SELECT * FROM products"
 	).fetch(db.get_ref())
 	 .filter_map(
-		 |item| futures::future::ready(
-				match item {
-					Ok(item) => Some(format!("{:?}", item)),
-					Err(_) => None
-				}
-		 )
-	 ).collect::<Vec<String>>().await;
+		 |item| futures::future::ready(item.ok())
+	 ).collect::<Vec<Product>>().await;
 	web::Json(products)
 }
 
