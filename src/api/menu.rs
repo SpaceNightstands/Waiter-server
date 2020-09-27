@@ -1,4 +1,5 @@
 use super::prelude::*;
+use model::Product;
 
 pub fn get_service() -> actix_web::Scope{
 	web::scope("/menu")
@@ -8,8 +9,6 @@ pub fn get_service() -> actix_web::Scope{
 }
 
 async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
-	use model::Product;
-
 	let products = sqlx::query_as!(
 		Product,
 		"SELECT * FROM products"
@@ -20,13 +19,7 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 	web::Json(products)
 }
 
-#[derive(serde::Deserialize)]
-struct InsertableProduct {
-	kind: u8,
-	name: String
-}
-
-async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<InsertableProduct>) -> Result<impl Responder, Error> {
+async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<impl Responder, Error> {
 	//To index into the row with get
 	use sqlx::prelude::Row;
 
@@ -41,7 +34,7 @@ async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<InsertableProduct>) 
 	).fetch_one(db.get_ref())
 	 .await
 	 .map(
-		 |item| model::Product{
+		 |item| Product{
 				id: item.get(0),
 				kind: item.get(1),
 				name: item.get(2)
@@ -66,7 +59,7 @@ async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) ->
 	).fetch_one(db.get_ref())
 	 .await
 	 .map(
-		 |item| model::Product{
+		 |item| Product{
 				id: item.get(0),
 				kind: item.get(1),
 				name: item.get(2)
