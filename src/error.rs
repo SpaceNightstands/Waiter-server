@@ -1,7 +1,5 @@
 use sqlx::Error as sqlx;
 
-#[derive(serde::Serialize)]
-#[serde(into = "SerializableError")]
 pub enum Error {
 	SQLx(sqlx)
 }

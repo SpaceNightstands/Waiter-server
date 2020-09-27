@@ -15,23 +15,29 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 		"SELECT * FROM products"
 	).fetch(db.get_ref())
 	 .filter_map(
-		 |item| futures::future::ready(item.ok())
+		|item| futures::future::ready(item.ok())
 	 ).collect::<Vec<Product>>().await;
 	web::Json(products)
 }
 
-async fn put_menu(db: web::Data<MySqlPool>, name: String) -> Result<impl Responder, Error> {
+#[derive(serde::Deserialize)]
+struct InsertableProduct {
+	kind: u8,
+	name: String
+}
+
+async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<InsertableProduct>) -> Result<impl Responder, Error> {
 	//To index into the row with get
 	use sqlx::prelude::Row;
 
-	log::debug!("Inserting Product named \"{}\" into product list", name);
+	log::debug!("Inserting Product named \"{}\" into product list", prod.name);
 	let tx = db.get_ref()
 		.begin()
 		.await
 		.map_err(Error::new)?;
 	let product = sqlx::query!(
-		"INSERT INTO products(name) VALUES (?) RETURNING id, kind, name",
-		name	
+		"INSERT INTO products(kind, name) VALUES (?, ?) RETURNING id, kind, name",
+		prod.kind, prod.name	
 	).fetch_one(db.get_ref())
 	 .await
 	 .map(
