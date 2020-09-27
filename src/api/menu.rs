@@ -14,8 +14,8 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 		"SELECT * FROM products"
 	).fetch(db.get_ref())
 	 .filter_map(
-		|item| futures::future::ready(item.ok())
-	 ).collect::<Vec<Product>>().await;
+		|item| futures::future::ready(result_ok_log(item))
+	 ).collect::<Vec<_>>().await;
 	web::Json(products)
 }
 
