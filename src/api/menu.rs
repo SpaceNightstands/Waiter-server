@@ -20,9 +20,6 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 }
 
 async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<impl Responder, Error> {
-	//To index into the row with get
-	use sqlx::prelude::Row;
-
 	log::debug!("Inserting Product named \"{}\" into product list", prod.name);
 	let tx = db.get_ref()
 		.begin()
@@ -33,21 +30,13 @@ async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<
 		prod.kind, prod.name	
 	).fetch_one(db.get_ref())
 	 .await
-	 .map(
-		 |item| Product{
-				id: item.get(0),
-				kind: item.get(1),
-				name: item.get(2)
-			}
-	 ).map_err(Error::new)?;
+	 .map(make_product_from_row)
+	 .map_err(Error::new)?;
 	tx.commit().await.map_err(Error::new)?;
 	Ok(web::Json(product))
 }
 
 async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, Error> {
-	//To index into the row with get
-	use sqlx::prelude::Row;
-
 	log::debug!("Deleting Product {} from product list", id);
 	let tx = db.get_ref()
 		.begin()
@@ -58,15 +47,20 @@ async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) ->
 		id	
 	).fetch_one(db.get_ref())
 	 .await
-	 .map(
-		 |item| Product{
-				id: item.get(0),
-				kind: item.get(1),
-				name: item.get(2)
-			}
-	 ).map_err(Error::new)?;
+	 .map(make_product_from_row)
+	 .map_err(Error::new)?;
 	tx.commit().await.map_err(Error::new)?;
 	Ok(web::Json(product))
 }
 
 //TODO: edit product
+//Utils: 
+fn make_product_from_row(item: sqlx::mysql::MySqlRow) -> Product {
+	//To index into the row with get
+	use sqlx::prelude::Row;
+	Product{
+		id: item.get(0),
+		kind: item.get(1),
+		name: item.get(2)
+	}
+}
