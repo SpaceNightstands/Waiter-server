@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use sqlx::types::{ self, chrono::{ self, NaiveDate } };
+use sqlx::types::chrono::{ self, NaiveDate };
 
 #[derive(Serialize, Deserialize)]
 pub struct Product {
@@ -29,7 +29,7 @@ pub struct Order {
 	)]
 	pub day: NaiveDate,
 	pub owner: String,
-	pub cart: types::Json<Vec<u32>>,
+	pub cart: String,
 }
 
 impl std::fmt::Debug for Order {
