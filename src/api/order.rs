@@ -19,7 +19,12 @@ async fn get_orders(db: web::Data<MySqlPool>) -> impl Responder {
 	web::Json(orders)
 }
 
-async fn put_orders(db: web::Data<MySqlPool>, order: web::Json<Order>) -> Result<impl Responder, Error> {
+struct InsertableOrder {
+	idempotency: String,
+	cart: Vec<u32>
+}
+
+async fn put_orders(db: web::Data<MySqlPool>, order: web::Json<InsertableOrder>) -> Result<impl Responder, Error> {
 	log::debug!("Inserting Order");
 	let tx = db.get_ref()
 		.begin()
@@ -27,7 +32,8 @@ async fn put_orders(db: web::Data<MySqlPool>, order: web::Json<Order>) -> Result
 		.map_err(Error::new)?;
 	let orders = sqlx::query!(
 		"INSERT INTO orders(owner, cart) VALUES (?, ?) RETURNING id, owner, cart",
-		order.owner, order.cart
+		//Owner should be extracted from the jwt
+		"owner", serde_json::to_string(&order.cart).unwrap()
 	).fetch_one(db.get_ref())
 	 .await
 	 .map(make_order_from_row)
