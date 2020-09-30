@@ -1,7 +1,8 @@
 use super::prelude::*;
 
+#[derive(derive_getters::Getters)]
 pub(super) struct AuthToken {
-	pub(super) account_id: String
+	account_id: String
 }
 
 pub(super) fn jwt_guard(req: &actix_web::dev::RequestHead) -> bool {
@@ -9,20 +10,21 @@ pub(super) fn jwt_guard(req: &actix_web::dev::RequestHead) -> bool {
 	let key = hmac::Hmac::<sha2::Sha256>::new_varkey(b"Test")
     .unwrap();
 
-	//Authorization: Bearer <claims>.<signature>
-	let auth_value = req.headers.get("Authorization")
+	//Authorization: Bearer <token>
+	let token = req.headers.get("Authorization")
     .map(
 			|value| value.to_str()
 				.map(
 					|value| value.trim()
-						.strip_prefix("Bearer")
+						.strip_prefix("Bearer ")
 				)
 		);
 	use log::error;
-	match auth_value {
+	match token {
 		Some(Ok(Some(token))) => {
 			use jwt::{VerifyWithKey, Error};
 			use std::collections::HashMap;
+
 			let claims: Result<HashMap<String, String>, Error> = token.verify_with_key(&key);
 			match claims {
 				Ok(claims) => {

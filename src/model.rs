@@ -1,15 +1,16 @@
 use serde::{Serialize, Deserialize};
+use derive_getters::Getters;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Getters)]
 pub struct Product {
 	/*0 is the default for all numbers
 	 *since AUTO_INCREMENT starts from 1
 	 *0 is our None (in the contexts where
 	 *id matters)*/
 	#[serde(default)]
-	pub id: u32,
-	pub kind: u8,
-	pub name: String 
+	id: u32,
+	kind: u8,
+	name: String 
 }
 
 impl std::fmt::Debug for Product {
@@ -18,12 +19,12 @@ impl std::fmt::Debug for Product {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Getters)]
 pub struct Order {
 	#[serde(default)]
-	pub id: u32,
-	pub owner: String,
-	pub cart: String,
+	id: u32,
+	owner: String,
+	cart: String,
 }
 
 impl std::fmt::Debug for Order {

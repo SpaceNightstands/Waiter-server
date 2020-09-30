@@ -3,7 +3,6 @@ mod prelude {
 	pub(crate) use crate::error::Error;
 	pub(crate) use actix_web::{web, Responder};
 	pub(crate) use sqlx::MySqlPool;
-	pub(crate) use futures::stream::StreamExt;
 
 	//Utils
 	pub(crate) fn result_ok_log<T, E: std::fmt::Display>(res: Result<T, E>) -> Option<T> {
@@ -29,8 +28,7 @@ mod auth;
 //TODO: Add auth guard
 pub fn get_service(scope: &str) -> actix_web::Scope{
 	actix_web::web::scope(scope)
-    .service(menu::get_service())
-    .service(order::get_service())
-    .service(auth::get_service())
+    .service(menu::get_service().guard(auth::jwt_guard))
+    .service(order::get_service().guard(auth::jwt_guard))
 }
 
