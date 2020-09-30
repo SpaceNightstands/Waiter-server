@@ -1,7 +1,7 @@
 use super::prelude::*;
 
 #[derive(derive_getters::Getters)]
-pub(super) struct AuthToken {
+pub(crate) struct AuthToken {
 	account_id: String
 }
 
