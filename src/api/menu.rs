@@ -19,15 +19,22 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 	web::Json(products)
 }
 
-async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<impl Responder, Error> {
-	log::debug!("Inserting Product named \"{}\" into product list", prod.name);
+#[derive(serde::Deserialize)]
+struct InsertableProduct {
+	idempotency: String,
+	#[serde(flatten)]
+	product: Product
+}
+
+async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<InsertableProduct>) -> Result<impl Responder, Error> {
+	log::debug!("Inserting Product named \"{}\" into product list", prod.product.name());
 	let tx = db.get_ref()
 		.begin()
 		.await
 		.map_err(Error::new)?;
 	let product = sqlx::query!(
 		"INSERT INTO products(kind, name) VALUES (?, ?) RETURNING id, kind, name",
-		prod.kind, prod.name	
+		prod.product.kind(), prod.product.name()
 	).fetch_one(db.get_ref())
 	 .await
 	 .map(make_product_from_row)
