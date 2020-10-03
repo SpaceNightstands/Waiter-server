@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 mod model;
 mod api;
 mod error;
@@ -21,21 +22,17 @@ async fn main() -> std::io::Result<()> {
 
 	use actix_web::{HttpServer, App};
 	let folder = env_var("SERVER_DIRECTORY")
-    .map(
-			|dir| /*if !dir.starts_with("/") {
-			}*/
-			&*dir
-		).unwrap_or("/");
+    .unwrap_or("/".to_string());
 	HttpServer::new(move ||
 		App::new()
 				.data(conn.clone())
 				.wrap(actix_web::middleware::Logger::default())
-				.service(api::get_service(folder))
+				.service(api::get_service(&*folder))
 	).bind(
 		format!(
 			"{}:{}",
-			env_var("SERVER_ADDRESS").map(|s| &*s).unwrap_or("0.0.0.0"),
-			env_var("SERVER_PORT").map(|s| &*s).unwrap_or("8080"),
+			env_var("SERVER_ADDRESS").unwrap_or("0.0.0.0".to_string()),
+			env_var("SERVER_PORT").unwrap_or("8080".to_string()),
 		)
 	)?.run()
 	 .await

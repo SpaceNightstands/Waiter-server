@@ -1,5 +1,3 @@
-use super::prelude::*;
-
 #[derive(derive_getters::Getters)]
 pub(super) struct AuthToken {
 	account_id: String
@@ -27,7 +25,7 @@ pub(super) fn jwt_guard(req: &actix_web::dev::RequestHead) -> bool {
 
 			let claims: Result<HashMap<String, String>, Error> = token.verify_with_key(&key);
 			match claims {
-				Ok(claims) => {
+				Ok(mut claims) => {
 					if let Some(acc_id) = claims.remove("sub") {
 						req.extensions_mut().insert(
 							AuthToken {
