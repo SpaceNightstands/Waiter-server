@@ -12,15 +12,32 @@ use actix_web::{
 	http::StatusCode,
 	Error as axError
 };
+use sqlx::types::chrono::{
+	self,
+	Utc
+};
 use futures::future;
 use std::sync::Arc;
 pub type Key = hmac::Hmac<sha2::Sha256>;
+type DateTime = chrono::DateTime<Utc>;
 
-
-#[derive(derive_getters::Getters)]
+#[derive(serde::Deserialize, derive_getters::Getters)]
 pub(super) struct AuthToken {
-	account_id: String,
+	sub: String, //subject
+	#[serde(deserialize_with = "deser_datetime")]
+	exp: DateTime, //Expiration Time
 	idempotence: String
+}
+
+fn deser_datetime<'de, D: serde::Deserializer<'de>>(deser: D) -> Result<DateTime, D::Error> {
+	//Switch to RFC3339
+	let timestamp = <i64 as serde::Deserialize>::deserialize(deser)?;
+	Ok(
+		DateTime::from_utc(
+			chrono::NaiveDateTime::from_timestamp(timestamp, 0),
+			Utc
+		)
+	)
 }
 
 pub(super) struct JWTAuth(pub(super) Arc<Key>);
@@ -70,7 +87,7 @@ where
 
 	type Error = S::Error;
 
-	//TODO: Change with a more specific type
+	//TODO: Make a more specific type
 	type Future = future::LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
 	fn poll_ready(&mut self, ctx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), Self::Error>> {
@@ -97,12 +114,10 @@ where
 			)
 		};
 
-		let claims = if let Some(token) = header.trim().strip_prefix("Bearer "){
-			use jwt::{VerifyWithKey, Error};
-			use std::collections::HashMap;
+		let claims: Result<AuthToken, jwt::Error> = if let Some(token) = header.trim().strip_prefix("Bearer "){
+			use jwt::VerifyWithKey;
 
-			let claims: Result<HashMap<String, String>, Error> = token.verify_with_key(self.key.as_ref());
-			claims
+			token.verify_with_key(self.key.as_ref())
 		} else {
 			return Box::pin(
 				err(
@@ -112,19 +127,15 @@ where
 		};
 
 		match claims {
-			Ok(mut claims) => {
-				if let (Some(acc_id), Some(idempotence)) = (claims.remove("sub"), claims.remove("idemp")) {
-					req.head_mut().extensions_mut().insert(
-						AuthToken {
-							account_id: acc_id,
-							idempotence
-						}
-					);
+			Ok(claims) => {
+				if claims.exp < Utc::now() {
+					req.head_mut().extensions_mut()
+						.insert(claims);
 					Box::pin(self.service.call(req))
 				} else {
 					Box::pin(
 						err(
-							StaticError::new(StatusCode::UNAUTHORIZED, "Couldn't find sub(ject) in JWT").into()
+							StaticError::new(StatusCode::UNAUTHORIZED, "JWT Token expired").into()
 						)
 					)
 				}

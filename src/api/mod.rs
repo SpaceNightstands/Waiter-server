@@ -36,7 +36,7 @@ use actix_web::{
 	Error as axError
 };
 //TODO: Add host guard
-pub fn get_service(scope: &str, key: std::sync::Arc<Key>) -> actix_web::Scope<impl actix_service::ServiceFactory<Config = (), Request=ServiceRequest, Response=ServiceResponse, Error=axError, InitError= ()>> {
+pub fn get_service(scope: &str, key: Arc<Key>) -> actix_web::Scope<impl actix_service::ServiceFactory<Config = (), Request=ServiceRequest, Response=ServiceResponse, Error=axError, InitError= ()>> {
 	actix_web::web::scope(scope)
     .wrap(
 			auth::JWTAuth(key)
