@@ -31,6 +31,8 @@ mod prelude {
 
 use std::sync::Arc;
 pub use auth::Key;
+pub use cache::Cache;
+pub use cache::make_impedency_cache;
 
 use actix_web::{
 	dev::{
@@ -40,20 +42,11 @@ use actix_web::{
 	Error as axError
 };
 //TODO: Add host guard
-pub fn get_service(scope: &str, key: Arc<Key>) -> actix_web::Scope<impl actix_service::ServiceFactory<Config = (), Request=ServiceRequest, Response=ServiceResponse, Error=axError, InitError= ()>> {
+pub fn get_service(scope: &str, key: Arc<Key>, cache: Cache) -> actix_web::Scope<impl actix_service::ServiceFactory<Config = (), Request=ServiceRequest, Response=ServiceResponse, Error=axError, InitError= ()>> {
 	actix_web::web::scope(scope)
-    .wrap(
-			auth::JWTAuth(key)
-		).wrap(
-			cache::IdempotencyCache(
-				Arc::new(
-					dashmap::DashSet::<String>::new()
-				)
-			)
-		).service(
-			menu::get_service()
-		).service(
-			order::get_service()
-		)
+    .wrap(auth::JWTAuth(key))
+		.wrap(cache::IdempotencyCache(cache))
+		.service(menu::get_service())
+		.service(order::get_service())
 }
 

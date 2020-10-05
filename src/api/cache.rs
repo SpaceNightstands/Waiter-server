@@ -11,7 +11,14 @@ use actix_web::{
 };
 use futures::future;
 
-type Cache = std::sync::Arc<dashmap::DashSet<String>>;
+pub type Cache = std::sync::Arc<dashmap::DashSet<String>>;
+
+pub async fn make_impedency_cache() -> Cache {
+	//TODO: Schedule clearer task for every midnight
+	Cache::new(
+		dashmap::DashSet::new()
+	)
+}
 
 pub(super) struct IdempotencyCache(pub(super) Cache);
 
@@ -34,7 +41,6 @@ where
 	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
 
 	fn new_transform(&self, service: S) -> Self::Future {
-		//TODO: Schedule clearer task for every midnight
 		future::ok(
 			IdempotencyCacheService{
 				service,

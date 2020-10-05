@@ -1,3 +1,4 @@
+//TODO: Refactor modules
 #![allow(non_snake_case)]
 mod model;
 mod api;
@@ -31,19 +32,21 @@ async fn main() -> std::io::Result<()> {
 	let folder = env_var("SERVER_DIRECTORY")
     .unwrap_or("/".to_string());
 
+	let cache = api::make_impedency_cache().await;
+
 	let conn = get_database(
 		&*env_var("DATABASE_URL")
 			.expect("Environment variable DATABASE_URL not set"),
 	).await
 	 .expect("Couldn't connect to database");
 	HttpServer::new(move || {
-			let key = key.clone();
-			App::new()
-					.data(conn.clone())
-					.wrap(actix_web::middleware::Logger::default())
-					.service(api::get_service(&*folder, key))
-		}
-	).bind(
+		let key = key.clone();
+		let cache = cache.clone();
+		App::new()
+				.data(conn.clone())
+				.wrap(actix_web::middleware::Logger::default())
+				.service(api::get_service(&*folder, key, cache))
+	}).bind(
 		format!(
 			"{}:{}",
 			env_var("SERVER_ADDRESS").unwrap_or("0.0.0.0".to_string()),
@@ -57,6 +60,8 @@ use sqlx::MySqlPool;
 async fn get_database(db_url: &str)->Result<MySqlPool, sqlx::Error> {
 	let conn = MySqlPool::connect(db_url).await?;
 	/*Check last order list addition,
-		truncate if older than a day*/
+		truncate if older than a day
+	  Return truncator future*/
 	Ok(conn)
 }
+
