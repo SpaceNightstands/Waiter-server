@@ -24,7 +24,6 @@ async fn get_orders(db: web::Data<MySqlPool>) -> impl Responder {
 
 #[derive(serde::Deserialize)]
 struct InsertableOrder {
-	idempotency: String,
 	cart: Vec<u32>
 }
 

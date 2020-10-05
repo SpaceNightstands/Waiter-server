@@ -24,7 +24,6 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 
 #[derive(serde::Deserialize)]
 struct InsertableProduct {
-	idempotency: String,
 	image: Vec<u8>,
 	#[serde(flatten)]
 	product: Product

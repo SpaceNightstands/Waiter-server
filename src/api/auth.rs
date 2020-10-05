@@ -19,7 +19,8 @@ pub type Key = hmac::Hmac<sha2::Sha256>;
 
 #[derive(derive_getters::Getters)]
 pub(super) struct AuthToken {
-	account_id: String
+	account_id: String,
+	idempotence: String
 }
 
 pub(super) struct JWTAuth(pub(super) Arc<Key>);
@@ -112,10 +113,11 @@ where
 
 		match claims {
 			Ok(mut claims) => {
-				if let Some(acc_id) = claims.remove("sub") {
+				if let (Some(acc_id), Some(idempotence)) = (claims.remove("sub"), claims.remove("idemp")) {
 					req.head_mut().extensions_mut().insert(
 						AuthToken {
-							account_id: acc_id
+							account_id: acc_id,
+							idempotence
 						}
 					);
 					Box::pin(self.service.call(req))
