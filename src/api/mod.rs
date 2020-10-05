@@ -3,12 +3,12 @@ mod order;
 mod auth;
 
 mod prelude {
-	pub(crate) use crate::model;
-	pub(crate) use crate::error::Error;
-	pub(crate) use actix_web::{web, Responder};
-	pub(crate) use sqlx::MySqlPool;
-	pub(crate) use futures::stream::StreamExt;
-//	pub(crate) use super::auth::AuthToken;
+	pub(super) use crate::model;
+	pub(super) use crate::error::*;
+	pub(super) use actix_web::{web, Responder};
+	pub(super) use sqlx::MySqlPool;
+	pub(super) use futures::stream::StreamExt;
+	pub(super) use super::auth::AuthToken;
 
 	//Utils
 	pub(crate) fn result_ok_log<T, E: std::fmt::Display>(res: Result<T, E>) -> Option<T> {
@@ -27,10 +27,23 @@ mod prelude {
 	}
 }
 
-//TODO: Add auth guard
-pub fn get_service(scope: &str) -> actix_web::Scope{
+pub use auth::Key;
+use actix_web::{
+	dev::{
+		ServiceRequest,
+		ServiceResponse
+	},
+	Error as axError
+};
+//TODO: Add host guard
+pub fn get_service(scope: &str, key: std::sync::Arc<Key>) -> actix_web::Scope<impl actix_service::ServiceFactory<Config = (), Request=ServiceRequest, Response=ServiceResponse, Error=axError, InitError= ()>> {
 	actix_web::web::scope(scope)
-    .service(menu::get_service().guard(auth::jwt_guard))
-    .service(order::get_service().guard(auth::jwt_guard))
+    .wrap(
+			auth::JWTAuth(key)
+		).service(
+			menu::get_service()
+		).service(
+			order::get_service()
+		)
 }
 

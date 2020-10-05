@@ -1,4 +1,7 @@
-use super::prelude::*;
+use super::prelude::{
+	*,
+	DatabaseError as DBError
+};
 use model::Order;
 
 pub fn get_service() -> actix_web::Scope{
@@ -25,41 +28,41 @@ struct InsertableOrder {
 	cart: Vec<u32>
 }
 
-async fn put_orders(db: web::Data<MySqlPool>, order: web::Json<InsertableOrder>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+async fn put_orders(db: web::Data<MySqlPool>, order: web::Json<InsertableOrder>, req: web::HttpRequest) -> Result<impl Responder, DBError> {
 	log::debug!("Inserting Order");
 	let tx = db.get_ref()
 		.begin()
 		.await
-		.map_err(Error::new)?;
+		.map_err(DBError::from)?;
 	let extensions = req.extensions();
 	let orders = sqlx::query!(
 		"INSERT INTO orders(owner, cart) VALUES (?, ?) RETURNING id, owner, cart",
-		extensions.get::<super::auth::AuthToken>()
+		extensions.get::<AuthToken>()
 			.unwrap()
 			.account_id(),
 		serde_json::to_string(&order.cart).unwrap()
 	).fetch_one(db.get_ref())
 	 .await
 	 .map(make_order_from_row)
-	 .map_err(Error::new)?;
-	tx.commit().await.map_err(Error::new)?;
+	 .map_err(DBError::from)?;
+	tx.commit().await.map_err(DBError::from)?;
 	Ok(web::Json(orders))
 }
 
-async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, Error> {
+async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, DBError> {
 	log::debug!("Deleting Order {} from order list", id);
 	let tx = db.get_ref()
 		.begin()
 		.await
-		.map_err(Error::new)?;
+		.map_err(DBError::from)?;
 	let product = sqlx::query!(
 		"DELETE FROM orders WHERE id = ? RETURNING id, owner, cart",
 		id	
 	).fetch_one(db.get_ref())
 	 .await
 	 .map(make_order_from_row)
-	 .map_err(Error::new)?;
-	tx.commit().await.map_err(Error::new)?;
+	 .map_err(DBError::from)?;
+	tx.commit().await.map_err(DBError::from)?;
 	Ok(web::Json(product))
 }
 

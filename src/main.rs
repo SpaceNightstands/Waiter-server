@@ -23,11 +23,22 @@ async fn main() -> std::io::Result<()> {
 	use actix_web::{HttpServer, App};
 	let folder = env_var("SERVER_DIRECTORY")
     .unwrap_or("/".to_string());
-	HttpServer::new(move ||
-		App::new()
-				.data(conn.clone())
-				.wrap(actix_web::middleware::Logger::default())
-				.service(api::get_service(&*folder))
+
+	use hmac::NewMac;
+	let key = std::sync::Arc::new(
+		api::Key::new_varkey(
+				env_var("JWT_SECRET")
+					.expect("Environment variable DATABASE_URL not set")
+					.as_bytes()
+			).unwrap()
+	);
+	HttpServer::new(move || {
+			let key = key.clone();
+			App::new()
+					.data(conn.clone())
+					.wrap(actix_web::middleware::Logger::default())
+					.service(api::get_service(&*folder, key))
+		}
 	).bind(
 		format!(
 			"{}:{}",
