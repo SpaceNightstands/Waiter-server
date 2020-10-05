@@ -12,7 +12,10 @@ pub struct Product {
 	pub(super) id: u32,
 	//Can only be "available", "orderable" or "beverage"
 	pub(super) kind: String, 
-	pub(super) name: String 
+	pub(super) name: String,
+	pub(super) price: u16, 
+	pub(super) max_num: u8,
+	pub(super) ingredients: Option<String> 
 }
 
 #[derive(Serialize, Deserialize, Getters, Debug)]
