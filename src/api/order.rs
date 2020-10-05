@@ -38,7 +38,7 @@ async fn put_orders(db: web::Data<MySqlPool>, order: web::Json<InsertableOrder>,
 		"INSERT INTO orders(owner, cart) VALUES (?, ?) RETURNING id, owner, cart",
 		extensions.get::<AuthToken>()
 			.unwrap()
-			.account_id(),
+			.sub(),
 		serde_json::to_string(&order.cart).unwrap()
 	).fetch_one(db.get_ref())
 	 .await

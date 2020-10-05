@@ -14,16 +14,7 @@ async fn main() -> std::io::Result<()> {
 		.init()
 		.expect("Couldn't set logger");
 
-	let conn = get_database(
-		&*env_var("DATABASE_URL")
-				.expect("Environment variable DATABASE_URL not set")
-	).await
-	 .expect("Couldn't connect to database");
-
-	use actix_web::{HttpServer, App};
-	let folder = env_var("SERVER_DIRECTORY")
-    .unwrap_or("/".to_string());
-
+	//Create JWT Key
 	use hmac::NewMac;
 	let key = std::sync::Arc::new(
 		api::Key::new_varkey(
@@ -32,6 +23,16 @@ async fn main() -> std::io::Result<()> {
 					.as_bytes()
 			).unwrap()
 	);
+
+	use actix_web::{HttpServer, App};
+	let folder = env_var("SERVER_DIRECTORY")
+    .unwrap_or("/".to_string());
+
+	let conn = get_database(
+		&*env_var("DATABASE_URL")
+			.expect("Environment variable DATABASE_URL not set"),
+	).await
+	 .expect("Couldn't connect to database");
 	HttpServer::new(move || {
 			let key = key.clone();
 			App::new()

@@ -1,6 +1,8 @@
 mod menu;
 mod order;
+
 mod auth;
+mod cache;
 
 mod prelude {
 	pub(super) use crate::model;
@@ -27,7 +29,9 @@ mod prelude {
 	}
 }
 
+use std::sync::Arc;
 pub use auth::Key;
+
 use actix_web::{
 	dev::{
 		ServiceRequest,
@@ -40,6 +44,12 @@ pub fn get_service(scope: &str, key: Arc<Key>) -> actix_web::Scope<impl actix_se
 	actix_web::web::scope(scope)
     .wrap(
 			auth::JWTAuth(key)
+		).wrap(
+			cache::IdempotencyCache(
+				Arc::new(
+					dashmap::DashSet::<String>::new()
+				)
+			)
 		).service(
 			menu::get_service()
 		).service(

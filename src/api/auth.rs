@@ -20,7 +20,7 @@ pub(super) struct AuthToken {
 	sub: String, //subject
 	#[serde(deserialize_with = "deser_datetime")]
 	exp: DateTime, //Expiration Time
-	idempotence: String
+	idempotency: String
 }
 
 fn deser_datetime<'de, D: serde::Deserializer<'de>>(deser: D) -> Result<DateTime, D::Error> {
@@ -120,6 +120,7 @@ where
 
 		match claims {
 			Ok(claims) => {
+				// Add checksum check
 				if chrono::Utc::now() < claims.exp {
 					req.head_mut().extensions_mut()
 						.insert(claims);
