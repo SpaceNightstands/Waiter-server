@@ -3,6 +3,9 @@ mod model;
 mod api;
 mod error;
 
+#[cfg(test)]
+mod test;
+
 use std::env::var as env_var;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
