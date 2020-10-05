@@ -1,7 +1,3 @@
-use super::prelude::{
-	AuthorizationError as AuthError,
-	StaticError
-};
 use actix_web::{
 	dev::{
 		self,
@@ -12,14 +8,12 @@ use actix_web::{
 	http::StatusCode,
 	Error as axError
 };
-use sqlx::types::chrono::{
-	self,
-	Utc
-};
+use sqlx::types::chrono;
 use futures::future;
 use std::sync::Arc;
+
 pub type Key = hmac::Hmac<sha2::Sha256>;
-type DateTime = chrono::DateTime<Utc>;
+type DateTime = chrono::DateTime<chrono::FixedOffset>;
 
 #[derive(serde::Deserialize, derive_getters::Getters)]
 pub(super) struct AuthToken {
@@ -31,12 +25,10 @@ pub(super) struct AuthToken {
 
 fn deser_datetime<'de, D: serde::Deserializer<'de>>(deser: D) -> Result<DateTime, D::Error> {
 	let timestamp = <&str as serde::Deserialize>::deserialize(deser)?;
-	Ok(
-		chrono::DateTime::parse_from_rfc3339(
-			timestamp
-		).map_err(
-			|err| serde::de::Error::custom(err)
-		)?.with_timezone(&Utc)
+	DateTime::parse_from_rfc3339(
+		timestamp
+	).map_err(
+		|err| serde::de::Error::custom(err)
 	)
 }
 
@@ -96,20 +88,20 @@ where
 
 	fn call(&mut self, mut req: Self::Request) -> Self::Future {
 		//Authorization: Bearer <token>
-		use futures::future::err;
+		use future::err;
 		let header = if let Some(header) = req.headers().get("Authorization") {
 			match header.to_str() {
 				Ok(header) => header,
 				Err(error) => return Box::pin(
 					err(
-						AuthError::new(error).into()
+						AuthError(error).into()
 					)
 				)
 			}
 		} else {
 			return Box::pin(
 				err(
-					StaticError::new(StatusCode::UNAUTHORIZED, "Couldn't find Authorization header").into()
+					StaticError("Couldn't find Authorization header").into()
 				)
 			)
 		};
@@ -121,26 +113,36 @@ where
 		} else {
 			return Box::pin(
 				err(
-					StaticError::new(StatusCode::UNAUTHORIZED, "Authorization header doesn't start with \"Bearer \"").into()
+					StaticError("Authorization header doesn't start with \"Bearer \"").into()
 				)
 			)
 		};
 
 		match claims {
 			Ok(claims) => {
-				if Utc::now() < claims.exp {
+				if chrono::Utc::now() < claims.exp {
 					req.head_mut().extensions_mut()
 						.insert(claims);
 					Box::pin(self.service.call(req))
 				} else {
 					Box::pin(
 						err(
-							StaticError::new(StatusCode::UNAUTHORIZED, "JWT Token expired").into()
+							StaticError("JWT Token expired").into()
 						)
 					)
 				}
 			},
-			Err(error) => Box::pin(err(AuthError::new(error).into()))
+			Err(error) => Box::pin(err(AuthError(error).into()))
 		}
 	}
+}
+
+#[inline]
+fn AuthError<T: std::error::Error>(err: T) -> crate::error::DebugError<T> {
+	crate::error::DebugError::new(StatusCode::UNAUTHORIZED, err)
+}
+
+#[inline]
+fn StaticError(err: &'static str) -> crate::error::StaticError {
+	crate::error::StaticError::new(StatusCode::UNAUTHORIZED, err)
 }

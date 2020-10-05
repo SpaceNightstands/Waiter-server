@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::error::Error as stdError;
 use sqlx::Error as sqlx;
 use actix_web::{
 	error::ResponseError,
@@ -47,23 +48,23 @@ impl ResponseError for DatabaseError {
 }
 
 #[derive(Debug)]
-pub(super) struct AuthorizationError<T: std::error::Error>(T);
+pub(super) struct DebugError<T: stdError>(StatusCode, T);
 
-impl<T: std::error::Error> AuthorizationError<T> {
-	pub(super) fn new(e: T) -> Self {
-		Self(e)
+impl<T: stdError> DebugError<T> {
+	pub(super) fn new(code: StatusCode, e: T) -> Self {
+		Self(code, e)
 	}
 }
 
-impl<T: std::error::Error> ResponseError for AuthorizationError<T> {
+impl<T: stdError> ResponseError for DebugError<T> {
     fn status_code(&self) -> StatusCode {
-        StatusCode::UNAUTHORIZED
+			self.0
     }
 }
 
-impl<T: std::error::Error> Display for AuthorizationError<T> {
+impl<T: stdError> Display for DebugError<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		Display::fmt(&self.0, f)
+		Display::fmt(&self.1, f)
 	}
 }
 
