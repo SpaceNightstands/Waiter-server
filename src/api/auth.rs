@@ -30,13 +30,13 @@ pub(super) struct AuthToken {
 }
 
 fn deser_datetime<'de, D: serde::Deserializer<'de>>(deser: D) -> Result<DateTime, D::Error> {
-	//Switch to RFC3339
-	let timestamp = <i64 as serde::Deserialize>::deserialize(deser)?;
+	let timestamp = <&str as serde::Deserialize>::deserialize(deser)?;
 	Ok(
-		DateTime::from_utc(
-			chrono::NaiveDateTime::from_timestamp(timestamp, 0),
-			Utc
-		)
+		chrono::DateTime::parse_from_rfc3339(
+			timestamp
+		).map_err(
+			|err| serde::de::Error::custom(err)
+		)?.with_timezone(&Utc)
 	)
 }
 
@@ -128,7 +128,7 @@ where
 
 		match claims {
 			Ok(claims) => {
-				if claims.exp < Utc::now() {
+				if Utc::now() < claims.exp {
 					req.head_mut().extensions_mut()
 						.insert(claims);
 					Box::pin(self.service.call(req))
