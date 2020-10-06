@@ -1,8 +1,11 @@
 use super::prelude::{
 	*,
-	DatabaseError as DBError
+	error::DatabaseError as DBError,
+	model::Order
 };
-use model::Order;
+use actix_web::Error;
+use futures::stream::StreamExt;
+use sqlx::Row;
 
 pub fn get_service() -> actix_web::Scope{
 	web::scope("/order")
@@ -11,67 +14,128 @@ pub fn get_service() -> actix_web::Scope{
     .route("/{id}", web::delete().to(delete_orders))
 }
 
-async fn get_orders(db: web::Data<MySqlPool>) -> impl Responder {
-	let orders = sqlx::query_as!(
-		Order,
-		"SELECT id,owner,cart FROM orders"
-	).fetch(db.get_ref())
-	 .filter_map(
-		|item| futures::future::ready(result_ok_log(item))
-	 ).collect::<Vec<_>>().await;
-	web::Json(orders)
-}
+async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+	let owner = req.extensions();
+	let owner = get_auth_token(&owner)?;
+	let mut orders = Vec::<Order>::new();
 
-#[derive(serde::Deserialize)]
-struct InsertableOrder {
-	cart: Vec<u32>
-}
-
-async fn put_orders(db: web::Data<MySqlPool>, order: web::Json<InsertableOrder>, req: web::HttpRequest) -> Result<impl Responder, DBError> {
-	log::debug!("Inserting Order");
-	let tx = db.get_ref()
-		.begin()
-		.await
-		.map_err(DBError::from)?;
-	let extensions = req.extensions();
-	let orders = sqlx::query!(
-		"INSERT INTO orders(owner, cart) VALUES (?, ?) RETURNING id, owner, cart",
-		extensions.get::<AuthToken>()
-			.unwrap()
-			.sub(),
-		serde_json::to_string(&order.cart).unwrap()
-	).fetch_one(db.get_ref())
-	 .await
-	 .map(make_order_from_row)
-	 .map_err(DBError::from)?;
-	tx.commit().await.map_err(DBError::from)?;
+	let mut query = sqlx::query!(
+		"SELECT o.id,o.owner,c.item,c.quantity
+		 FROM orders AS o INNER JOIN carts AS c
+		 ON o.id=c.order
+		 WHERE o.owner=?
+		 ORDER BY id",
+		owner.sub()
+	).fetch(db.get_ref());
+	while let Some(item) = query.next().await {
+		if let Some(item) = result_ok_log(item) {
+			if let Some(order) = orders.last_mut() {
+				if order.id() == &item.id {
+					order.cart.push(
+						(item.item, item.quantity)
+					);
+					continue;
+				}
+			}
+			orders.push(
+				Order {
+					id: item.id,
+					owner: item.owner,
+					cart: vec![(item.item, item.quantity)]
+				}
+			);
+		}
+	}
 	Ok(web::Json(orders))
 }
 
-async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, DBError> {
+//Order is an array of (item id, quantity) tuples
+async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)>>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+	let owner = req.extensions();
+	let owner = get_auth_token(&owner)?;
+	if cart.len() <= 0 {
+		return Err(
+			error::StaticError::new(
+				actix_web::http::StatusCode::BAD_REQUEST,
+				"The cart is empty"
+			).into()
+		)
+	}
+
+	log::debug!("Inserting Order");
+	let mut tx = db.get_ref()
+		.begin()
+		.await
+		.map_err(DBError::from)?;
+
+	let mut order = sqlx::query!(
+		"INSERT INTO orders(owner) VALUES (?) RETURNING id, owner",
+		owner.sub()
+	).fetch_one(&mut tx)
+		.await
+		.map_err(DBError::from)
+    .map(
+			|row| Order {
+				id: row.get("id"),
+				owner: row.get("owner"),
+				cart: Vec::new()
+			}
+		)?;
+	for (item, quantity) in cart.drain(..) {
+		sqlx::query!(
+			"INSERT INTO carts VALUES (?, ?, ?) RETURNING item, quantity",
+			order.id(), item, quantity
+		).fetch_one(&mut tx)
+		 .await
+		 .map(
+			 |row| order.cart.push(
+				 (row.get("item"), row.get("quantity"))
+			 )
+		 )
+		 .map_err(DBError::from)?;
+	}
+
+	tx.commit().await.map_err(DBError::from)?;
+	Ok(web::Json(order))
+}
+
+async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+	let owner = req.extensions();
+	let owner = get_auth_token(&owner)?;
+
 	log::debug!("Deleting Order {} from order list", id);
-	let tx = db.get_ref()
+	let mut tx = db.get_ref()
 		.begin()
 		.await
 		.map_err(DBError::from)?;
 	let product = sqlx::query!(
-		"DELETE FROM orders WHERE id = ? RETURNING id, owner, cart",
-		id	
-	).fetch_one(db.get_ref())
+		"DELETE orders, carts FROM orders, carts WHERE orders.id=? AND orders.owner=? AND carts.order=?",
+		id, owner.sub(), id
+	).fetch_one(&mut tx)
 	 .await
-	 .map(make_order_from_row)
-	 .map_err(DBError::from)?;
+	 .map(
+		 |row| Order {
+			 id: row.get("id"),
+			 owner: row.get("owner"),
+			 cart: Vec::new(),
+		 }
+	 ).map_err(DBError::from)?;
 	tx.commit().await.map_err(DBError::from)?;
+
 	Ok(web::Json(product))
 }
 
 //Utils: 
-fn make_order_from_row(item: sqlx::mysql::MySqlRow) -> Order {
-	//To index into the row with get
-	use sqlx::prelude::Row;
-	Order{
-		id: item.get("id"),
-		owner: item.get("owner"),
-		cart: item.get("cart")
-	}
+#[inline]
+fn get_auth_token<'r>(req: &'r std::cell::Ref<'_, actix_web::dev::Extensions>) -> Result<&'r AuthToken, error::StaticError>{
+	req.get::<AuthToken>()
+    .ok_or(AuthError())
 }
+
+const fn AuthError() -> error::StaticError {
+	error::StaticError::new(
+		actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+		"JWT Token wasn't correctly validated"
+	)
+}
+

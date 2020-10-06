@@ -6,7 +6,7 @@ mod cache;
 
 mod prelude {
 	pub(super) use crate::model;
-	pub(super) use crate::error::*;
+	pub(super) use crate::error;
 	pub(super) use actix_web::{web, Responder};
 	pub(super) use sqlx::MySqlPool;
 	pub(super) use futures::stream::StreamExt;

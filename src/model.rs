@@ -2,7 +2,16 @@ use serde::{Serialize, Deserialize};
 use std::fmt::Debug;
 use derive_getters::Getters;
 
-#[derive(Serialize, Deserialize, Getters, Debug)]
+#[derive(Serialize, Deserialize, Debug, sqlx::Type)]
+#[serde(rename_all="lowercase")]
+#[sqlx(rename_all = "lowercase")]
+pub enum ProductKind {
+	Available,
+	Orderable,
+	Beverage
+}
+
+#[derive(Serialize, Deserialize, Getters, Debug, sqlx::FromRow)]
 pub struct Product {
 	/*0 is the default for all numbers
 	 *since AUTO_INCREMENT starts from 1
@@ -10,8 +19,7 @@ pub struct Product {
 	 *id matters)*/
 	#[serde(default)]
 	pub(super) id: u32,
-	//Can only be "available", "orderable" or "beverage"
-	pub(super) kind: String, 
+	pub(super) kind: ProductKind, 
 	pub(super) name: String,
 	pub(super) price: u16, 
 	pub(super) max_num: u8,
@@ -23,6 +31,6 @@ pub struct Order {
 	#[serde(default)]
 	pub(super) id: u32,
 	pub(super) owner: String,
-	pub(super) cart: String,
+	pub(super) cart: Vec<(u32, u32)>,
 }
 

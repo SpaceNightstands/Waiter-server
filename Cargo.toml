@@ -17,7 +17,6 @@ hmac = "*"
 sha2 = "*"
 dashmap = "~3.11.10"
 serde = "*"
-serde_json = "*"
 log = "*"
 derive-getters = "^0.2.0"
 
@@ -32,3 +31,7 @@ features=[
 	"json",
 	"chrono"
 ]
+
+[dev-dependencies]
+actix-rt = "*"
+serde_json = "*"

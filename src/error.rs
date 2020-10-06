@@ -72,7 +72,7 @@ impl<T: stdError> Display for DebugError<T> {
 pub(super) struct StaticError(StatusCode, &'static str);
 
 impl StaticError {
-	pub(super) fn new(code: StatusCode, e: &'static str) -> Self {
+	pub(super) const fn new(code: StatusCode, e: &'static str) -> Self {
 		Self(code, e)
 	}
 }
