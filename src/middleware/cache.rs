@@ -1,4 +1,3 @@
-use super::prelude::*;
 use actix_web::{
 	dev::{
 		self,
@@ -10,6 +9,7 @@ use actix_web::{
 	Error as axError
 };
 use futures::future;
+use super::auth::AuthToken;
 
 pub type Cache = std::sync::Arc<dashmap::DashSet<String>>;
 
