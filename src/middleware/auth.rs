@@ -32,7 +32,7 @@ fn deser_datetime<'de, D: serde::Deserializer<'de>>(deser: D) -> Result<DateTime
 	)
 }
 
-pub(super) struct JWTAuth(pub(super) Arc<Key>);
+pub struct JWTAuth(pub Arc<Key>);
 
 impl<S, B> dev::Transform<S> for JWTAuth
 where

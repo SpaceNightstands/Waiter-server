@@ -2,12 +2,16 @@
 #![allow(non_snake_case)]
 mod model;
 mod api;
+mod middleware;
 mod error;
 
 #[cfg(test)]
 mod test;
 
 use std::env::var as env_var;
+use api::*;
+use middleware::*;
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
 	//Parse .env (should make this optional)
@@ -21,7 +25,7 @@ async fn main() -> std::io::Result<()> {
 	//Create JWT Key
 	use hmac::NewMac;
 	let key = std::sync::Arc::new(
-		api::Key::new_varkey(
+		auth::Key::new_varkey(
 				env_var("JWT_SECRET")
 					.expect("Environment variable DATABASE_URL not set")
 					.as_bytes()
@@ -32,28 +36,33 @@ async fn main() -> std::io::Result<()> {
 	let folder = env_var("SERVER_DIRECTORY")
     .unwrap_or("/".to_string());
 
-	let cache = api::make_impedency_cache().await;
+	let cache = cache::make_impedency_cache().await;
 
 	let conn = get_database(
 		&*env_var("DATABASE_URL")
 			.expect("Environment variable DATABASE_URL not set"),
 	).await
 	 .expect("Couldn't connect to database");
-	HttpServer::new(move || {
+
+	let server = HttpServer::new(move || {
 		let key = key.clone();
 		let cache = cache.clone();
+		//TODO: Add host guard
 		App::new()
 				.data(conn.clone())
 				.wrap(actix_web::middleware::Logger::default())
-				.service(api::get_service(&*folder, key, cache))
+				.wrap(auth::JWTAuth(key))
+				.wrap(cache::IdempotencyCache(cache))
+				.service(menu::get_service())
+				.service(order::get_service())
 	}).bind(
 		format!(
 			"{}:{}",
 			env_var("SERVER_ADDRESS").unwrap_or("0.0.0.0".to_string()),
 			env_var("SERVER_PORT").unwrap_or("8080".to_string()),
 		)
-	)?.run()
-	 .await
+	)?.run();
+	server.await
 }
 
 use sqlx::MySqlPool;

@@ -1,8 +1,5 @@
-mod menu;
-mod order;
-
-mod auth;
-mod cache;
+pub mod menu;
+pub mod order;
 
 mod prelude {
 	pub(super) use crate::model;
@@ -10,7 +7,7 @@ mod prelude {
 	pub(super) use actix_web::{web, Responder};
 	pub(super) use sqlx::MySqlPool;
 	pub(super) use futures::stream::StreamExt;
-	pub(super) use super::auth::AuthToken;
+	pub(super) use crate::auth::AuthToken;
 
 	//Utils
 	pub(crate) fn result_ok_log<T, E: std::fmt::Display>(res: Result<T, E>) -> Option<T> {
@@ -28,25 +25,3 @@ mod prelude {
 		}
 	}
 }
-
-use std::sync::Arc;
-pub use auth::Key;
-pub use cache::Cache;
-pub use cache::make_impedency_cache;
-
-use actix_web::{
-	dev::{
-		ServiceRequest,
-		ServiceResponse
-	},
-	Error as axError
-};
-//TODO: Add host guard
-pub fn get_service(scope: &str, key: Arc<Key>, cache: Cache) -> actix_web::Scope<impl actix_service::ServiceFactory<Config = (), Request=ServiceRequest, Response=ServiceResponse, Error=axError, InitError= ()>> {
-	actix_web::web::scope(scope)
-    .wrap(auth::JWTAuth(key))
-		.wrap(cache::IdempotencyCache(cache))
-		.service(menu::get_service())
-		.service(order::get_service())
-}
-

@@ -4,8 +4,6 @@ use super::prelude::{
 	model::Order
 };
 use actix_web::Error;
-use futures::stream::StreamExt;
-use sqlx::Row;
 
 pub fn get_service() -> actix_web::Scope{
 	web::scope("/order")

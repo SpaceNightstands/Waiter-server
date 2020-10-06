@@ -20,7 +20,7 @@ pub async fn make_impedency_cache() -> Cache {
 	)
 }
 
-pub(super) struct IdempotencyCache(pub(super) Cache);
+pub struct IdempotencyCache(pub Cache);
 
 impl<S, B> dev::Transform<S> for IdempotencyCache
 where
