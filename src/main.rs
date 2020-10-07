@@ -4,6 +4,7 @@ mod model;
 mod api;
 mod middleware;
 mod error;
+mod database;
 
 #[cfg(test)]
 mod test;
@@ -32,27 +33,25 @@ async fn main() -> std::io::Result<()> {
 			).unwrap()
 	);
 
-	use actix_web::{HttpServer, App};
-	let folder = env_var("SERVER_DIRECTORY")
-    .unwrap_or("/".to_string());
+	let (cache, cache_clearing_routine) = cache::make_impedency_cache().await;
 
-	let cache = cache::make_impedency_cache().await;
-
-	let conn = get_database(
+	let (conn, database_cleanse_routine) = get_database(
 		&*env_var("DATABASE_URL")
 			.expect("Environment variable DATABASE_URL not set"),
 	).await
 	 .expect("Couldn't connect to database");
 
+	use actix_web::{HttpServer, App};
 	let server = HttpServer::new(move || {
 		let key = key.clone();
 		let cache = cache.clone();
 		//TODO: Add host guard
+		//Middleware is executed in reverse registration order
 		App::new()
 				.data(conn.clone())
-				.wrap(actix_web::middleware::Logger::default())
-				.wrap(auth::JWTAuth(key))
 				.wrap(cache::IdempotencyCache(cache))
+				.wrap(auth::JWTAuth(key))
+				.wrap(actix_web::middleware::Logger::default())
 				.service(menu::get_service())
 				.service(order::get_service())
 	}).bind(
@@ -62,15 +61,20 @@ async fn main() -> std::io::Result<()> {
 			env_var("SERVER_PORT").unwrap_or("8080".to_string()),
 		)
 	)?.run();
-	server.await
+
+	futures::join![server, database_cleanse_routine, cache_clearing_routine].0
 }
 
-use sqlx::MySqlPool;
-async fn get_database(db_url: &str)->Result<MySqlPool, sqlx::Error> {
-	let conn = MySqlPool::connect(db_url).await?;
-	/*Check last order list addition,
-		truncate if older than a day
-	  Return truncator future*/
-	Ok(conn)
+async fn wait_until_midnight() -> bool {
+	use sqlx::types::chrono::Local;
+	//Use and_hms_opt instead, handle errors
+	let before_waiting = Local::today();
+	let time_until_midnight = before_waiting.succ()
+		.and_hms(0, 0, 0)
+		.signed_duration_since(Local::now())
+		.to_std()
+		.unwrap();
+	actix_rt::time::delay_for(time_until_midnight).await;
+	//Return if it's actually past midnight
+	Local::today() > before_waiting
 }
-
