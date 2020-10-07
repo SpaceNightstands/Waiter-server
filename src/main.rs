@@ -35,7 +35,7 @@ async fn main() -> std::io::Result<()> {
 
 	let (cache, cache_clearing_routine) = cache::make_impedency_cache().await;
 
-	let (conn, database_cleanse_routine) = get_database(
+	let (conn, database_cleanse_routine) = database::get_database(
 		&*env_var("DATABASE_URL")
 			.expect("Environment variable DATABASE_URL not set"),
 	).await

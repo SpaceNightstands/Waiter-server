@@ -7,7 +7,7 @@ use sqlx::{
 	}
 };
 
-async fn get_database(db_url: &str)->Result<(MySqlPool, impl std::future::Future), Error> {
+pub async fn get_database(db_url: &str)->Result<(MySqlPool, impl std::future::Future), Error> {
 	let conn = MySqlPool::connect(db_url).await?;
 	/*Check last order list addition,
 		truncate if older than a day
