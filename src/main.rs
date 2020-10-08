@@ -26,6 +26,10 @@ async fn main() -> std::io::Result<()> {
 		.init()
 		.expect("Couldn't set logger");
 
+	//For host guard
+	/*let host = env_var("HOST")
+    .expect("Environment variable HOST not set");*/
+
 	//Create JWT Key
 	use hmac::NewMac;
 	let key = std::sync::Arc::new(
@@ -46,19 +50,24 @@ async fn main() -> std::io::Result<()> {
 	).await
 	 .expect("Couldn't connect to database");
 
-	use actix_web::{HttpServer, App};
+	use actix_web::{
+		HttpServer,
+		App,
+		middleware,
+		guard
+	};
 	let server = HttpServer::new(move || {
 		let key = key.clone();
 		let cache = cache.clone();
 		//TODO: Add host guard
 		//Middleware is executed in reverse registration order
 		App::new()
-				.data(conn.clone())
-				.wrap(cache::IdempotencyCache(cache))
-				.wrap(auth::JWTAuth(key))
-				.wrap(actix_web::middleware::Logger::default())
-				.service(menu::get_service())
-				.service(order::get_service())
+			.data(conn.clone())
+			.wrap(cache::IdempotencyCache(cache))
+			.wrap(auth::JWTAuth(key))
+			.wrap(middleware::Logger::default())
+			.service(menu::get_service())
+			.service(order::get_service())
 	}).bind(
 		format!(
 			"{}:{}",
