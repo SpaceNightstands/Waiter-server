@@ -83,13 +83,44 @@ async fn main() -> std::io::Result<()> {
 		}
 		#[cfg(unix)]
 		{
-			actix_rt::signal::ctrl_c()
-				.then(
-					|_| async move {
-						log::debug!("Received Ctrl-C");
-						stopper(server, database_stopper, cache_stopper).await
+			use actix_rt::signal::unix::{
+				self,
+				SignalKind
+			};
+			let mut signals = Vec::new();
+			let sig_map = [
+				SignalKind::interrupt(),
+				SignalKind::hangup(),
+				SignalKind::terminate(),
+				SignalKind::quit(),
+			];
+			for kind in sig_map.iter() {
+				match unix::signal(*kind) {
+					Ok(stream) => signals.push(stream),
+					Err(e) => if log::log_enabled!(log::Level::Error) {
+						log::error!(
+							"Can not initialize stream handler for {:?} err: {}",
+							kind, e
+						)
+					},
+				}
+			}
+
+			use std::task::Poll;
+			futures::future::poll_fn(
+				move |ctx|{
+					for sig in signals.iter_mut() {
+						if let Poll::Ready(Some(())) = sig.poll_recv(ctx) {
+							return Poll::Ready(())
+						}
 					}
-				)
+					Poll::Pending
+				}
+			).then(
+				|_| async move {
+					stopper(server, database_stopper, cache_stopper).await
+				}
+			)
 		}
 	};
 	futures::join![sigHandler, server, database_cleanse_routine, cache_clearing_routine].1
