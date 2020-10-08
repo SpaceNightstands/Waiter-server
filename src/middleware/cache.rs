@@ -10,23 +10,32 @@ use actix_web::{
 };
 use futures::future;
 use super::auth::AuthToken;
+use futures::{
+	future::FutureExt,
+	channel::oneshot
+};
 
 pub type Cache = std::sync::Arc<dashmap::DashSet<String>>;
 
-pub async fn make_impedency_cache() -> (Cache, impl std::future::Future) {
+pub async fn make_impedency_cache() -> (Cache, oneshot::Sender<()>, impl std::future::Future) {
 	let cache = Cache::new(dashmap::DashSet::new());
+	let (routine_stopper, recv) = oneshot::channel::<()>();
 	let cleaning_routine = {
 		let cache = cache.clone();
 		async move {
 			log::debug!("Scheduled Cache clearer");
+			let mut recv = recv.fuse();
 			loop {
-				if crate::wait_until_midnight().await {
-					cache.clear();
+				futures::select_biased! {
+					_ = recv => break,
+					is_past_midnight = crate::wait_until_midnight() => if is_past_midnight {
+						cache.clear();
+					}
 				}
 			}
 		}
 	};
-	(cache, cleaning_routine)
+	(cache, routine_stopper, cleaning_routine)
 }
 
 pub struct IdempotencyCache(pub Cache);
@@ -84,7 +93,6 @@ where
 	}
 
 	fn call(&mut self, req: Self::Request) -> Self::Future {
-		use future::FutureExt;
 		let idempotency = req.head().extensions().get::<AuthToken>()
 			.map(
 				|token| token.idempotency().clone()
