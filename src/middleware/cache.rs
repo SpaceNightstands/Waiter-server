@@ -100,7 +100,6 @@ where
 		match idempotency {
 			Some(idempotency) => {
 				if self.cache.contains(&idempotency) {
-					//TODO: Return some "already replied" response
 					Box::pin(
 						future::err(
 							crate::error::StaticError::new(
