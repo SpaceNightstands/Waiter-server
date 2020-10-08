@@ -101,7 +101,14 @@ where
 			Some(idempotency) => {
 				if self.cache.contains(&idempotency) {
 					//TODO: Return some "already replied" response
-					Box::pin(self.service.call(req))
+					Box::pin(
+						future::err(
+							crate::error::StaticError::new(
+								StatusCode::BAD_REQUEST,
+								"Already replied to a request with that idemp token"
+							).into()
+						)
+					)
 				} else {
 					let cache = self.cache.clone();
 					Box::pin(
