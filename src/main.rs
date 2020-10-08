@@ -1,4 +1,3 @@
-//TODO: Refactor modules
 #![allow(non_snake_case)]
 mod model;
 mod api;
