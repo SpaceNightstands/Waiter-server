@@ -1,4 +1,6 @@
-#[test]
-fn test() {
-	assert_eq!(1+1, 2);
+use super::*;
+use actix_web::test;
+
+#[actix_rt::test]
+async fn product() {
 }
