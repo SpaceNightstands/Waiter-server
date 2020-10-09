@@ -53,8 +53,7 @@ async fn main() -> std::io::Result<()> {
 	use actix_web::{
 		HttpServer,
 		App,
-		middleware,
-		guard
+		middleware
 	};
 	let server = HttpServer::new(move || {
 		let key = key.clone();
