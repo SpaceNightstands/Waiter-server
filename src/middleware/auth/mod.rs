@@ -89,6 +89,7 @@ where
 			service::JWTAuthService{
 				service,
 				key: self.0.clone(),
+				//TODO: Make this a closure
 				authorizer: Some(self.1.clone())
 			}
 		)

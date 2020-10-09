@@ -16,9 +16,9 @@ use super::{
 };
 
 pub struct JWTAuthService<S: Service>{
-	service: S,
-	key: Arc<Key>,
-	authorizer: Option<Arc<[String]>>
+	pub(super) service: S,
+	pub(super) key: Arc<Key>,
+	pub(super) authorizer: Option<Arc<[String]>>
 }
 
 impl<S, B> Service for JWTAuthService<S>
