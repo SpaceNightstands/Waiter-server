@@ -108,8 +108,8 @@ async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>, 
 		.await
 		.map_err(DBError::from)?;
 	let product = sqlx::query!(
-		"DELETE orders, carts FROM orders, carts WHERE orders.id=? AND orders.owner=? AND carts.order=?",
-		id, owner.sub(), id
+		"DELETE orders FROM orders WHERE orders.id=? AND orders.owner=?",
+		id, owner.sub()
 	).fetch_one(&mut tx)
 	 .await
 	 .map(

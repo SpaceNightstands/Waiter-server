@@ -57,10 +57,6 @@ async fn delete_data(db: &MySqlPool) -> Result<(), Error> {
 	).execute(&mut tx)
 		.await?;
 	sqlx::query!(
-		"TRUNCATE TABLE carts"
-	).execute(&mut tx)
-		.await?;
-	sqlx::query!(
 		"ALTER TABLE orders AUTO_INCREMENT = 1"
 	).execute(&mut tx)
 		.await?;
