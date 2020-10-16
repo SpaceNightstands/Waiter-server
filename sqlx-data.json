@@ -1,0 +1,152 @@
+{
+  "db": "MySQL",
+  "035a3f3ebf7a357cc212c8d26f0217dfb440223c78f1504c5f3edcf5d1bfe74b": {
+    "query": "TRUNCATE TABLE orders",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": []
+    }
+  },
+  "189160ef4f903fb9c68755282c07f4c8be968b612e99348a8d26005d096342a9": {
+    "query": "SELECT o.id,o.owner,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t WHERE o.owner=?\n\t\t ORDER BY id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 547
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        },
+        {
+          "ordinal": 1,
+          "name": "owner",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 4121
+            },
+            "char_set": 224,
+            "max_size": 1020
+          }
+        },
+        {
+          "ordinal": 2,
+          "name": "item",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 4137
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        },
+        {
+          "ordinal": 3,
+          "name": "quantity",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 4129
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "64ecd97c2748428029a8d19f6536b66a145429054fa0aa0aac8bb0a6b3820cfa": {
+    "query": "INSERT INTO carts VALUES (?, ?, ?) RETURNING item, quantity",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
+      },
+      "nullable": []
+    }
+  },
+  "8295b59228cd3a7aa5491c23aaa4b2f4d78a3fe40cc02d028d579cfd43b773af": {
+    "query": "ALTER TABLE orders AUTO_INCREMENT = 1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": []
+    }
+  },
+  "ad09b0f774d86ba36830548e859a70f30fab91452fd43a002528851c65442af6": {
+    "query": "DELETE FROM products WHERE id = ? RETURNING *",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "bb4d3a7d89c9bb51421762eee42040db3c337e22e3402e6561db1b3ce8bfa173": {
+    "query": "SELECT day FROM orders ORDER BY id DESC LIMIT 1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "day",
+          "type_info": {
+            "type": "Timestamp",
+            "flags": {
+              "bits": 1185
+            },
+            "char_set": 63,
+            "max_size": 19
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "bd86df4296a25518e2df8a018edb52f452c31318a1293c813ff37125e2540155": {
+    "query": "INSERT INTO orders(owner) VALUES (?) RETURNING id, owner",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
+  "f498a25e85eb4f5554c5494664147443a9a9ac002e62ad49c9f643b7c9486157": {
+    "query": "INSERT INTO products(kind, name, price, max_num, ingredients) VALUES (?, ?, ?, ?, ?) RETURNING *",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 5
+      },
+      "nullable": []
+    }
+  }
+}
