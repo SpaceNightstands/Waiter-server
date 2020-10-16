@@ -1,3 +1,4 @@
+use crate::error::StaticError;
 use actix_web::{
 	dev::{
 		self,
@@ -93,23 +94,26 @@ where
 	}
 
 	fn call(&mut self, req: Self::Request) -> Self::Future {
-		let idempotency = req.head().extensions().get::<AuthToken>()
+		let ext = req.head().extensions();
+		let idempotency = ext.get::<AuthToken>()
 			.map(
-				|token| token.idempotency().clone()
+				|token| token.idempotency()
 			);
 		match idempotency {
 			Some(idempotency) => {
-				if self.cache.contains(&idempotency) {
+				if self.cache.contains(idempotency) {
 					Box::pin(
 						future::err(
-							crate::error::StaticError::new(
+							StaticError::new(
 								StatusCode::BAD_REQUEST,
-								"Already replied to a request with that idemp token"
+								"Invalid idemp token"
 							).into()
 						)
 					)
 				} else {
 					let cache = self.cache.clone();
+					let idempotency = idempotency.clone();
+					std::mem::drop(ext);
 					Box::pin(
 						self.service.call(req)
 							.map(
@@ -125,14 +129,10 @@ where
 			},
 			None => Box::pin(
 				future::err(
-					StaticError("The JWT wasn't correctly verified").into()
+					StaticError::new(StatusCode::UNAUTHORIZED, "Invalid JWT").into()
 				)
 			)
 		}
 	}
 }
 
-#[inline]
-fn StaticError(err: &'static str) -> crate::error::StaticError {
-	crate::error::StaticError::new(StatusCode::INTERNAL_SERVER_ERROR, err)
-}

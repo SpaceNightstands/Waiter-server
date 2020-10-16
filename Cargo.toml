@@ -37,3 +37,5 @@ features=[
 [dev-dependencies]
 actix-rt = "*"
 serde_json = "*"
+lazy_static = "1.4.0"
+dotenv_codegen = "0.15.0"

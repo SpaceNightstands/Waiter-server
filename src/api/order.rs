@@ -10,7 +10,7 @@ pub fn get_service() -> actix_web::Scope{
 	web::scope("/order")
     .route("", web::get().to(get_orders))
     .route("", web::put().to(put_orders))
-//  .route("/{id}", web::delete().to(delete_orders))
+	//.route("/{id}", web::delete().to(delete_orders))
 }
 
 async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<impl Responder, Error> {
