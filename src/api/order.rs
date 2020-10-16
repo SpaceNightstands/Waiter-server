@@ -10,7 +10,7 @@ pub fn get_service() -> actix_web::Scope{
 	web::scope("/order")
     .route("", web::get().to(get_orders))
     .route("", web::put().to(put_orders))
-    .route("/{id}", web::delete().to(delete_orders))
+//  .route("/{id}", web::delete().to(delete_orders))
 }
 
 async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<impl Responder, Error> {
@@ -98,7 +98,7 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 	Ok(web::Json(order))
 }
 
-async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+/*async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
 	let owner = get_auth_token(&owner)?;
 
@@ -122,7 +122,7 @@ async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>, 
 	tx.commit().await.map_err(DBError::from)?;
 
 	Ok(web::Json(product))
-}
+}*/
 
 //Utils: 
 #[inline]
