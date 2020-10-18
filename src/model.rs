@@ -23,7 +23,8 @@ pub struct Product {
 	pub(super) name: String,
 	pub(super) price: u16, 
 	pub(super) max_num: u8,
-	pub(super) ingredients: Option<String> 
+	pub(super) ingredients: Option<String>,
+	pub(super) image: Vec<u8> 
 }
 
 #[derive(Serialize, Deserialize, Getters, Debug)]

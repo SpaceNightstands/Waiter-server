@@ -104,6 +104,16 @@
       "nullable": []
     }
   },
+  "b22ad812fce89eb81cc665073a8706fe964740d9cff9a6255ebe8d72dbedd1e6": {
+    "query": "INSERT INTO products(kind, name, price, max_num, ingredients, image) VALUES (?, ?, ?, ?, ?, ?) RETURNING *",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 6
+      },
+      "nullable": []
+    }
+  },
   "bb4d3a7d89c9bb51421762eee42040db3c337e22e3402e6561db1b3ce8bfa173": {
     "query": "SELECT day FROM orders ORDER BY id DESC LIMIT 1",
     "describe": {

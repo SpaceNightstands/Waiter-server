@@ -20,23 +20,17 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 	web::Json(products)
 }
 
-#[derive(serde::Deserialize)]
-struct InsertableProduct {
-	image: Vec<u8>,
-	#[serde(flatten)]
-	product: Product
-}
-
-async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<InsertableProduct>) -> Result<impl Responder, DBError> {
-	log::debug!("Inserting Product named \"{}\" into product list", prod.product.name());
+async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<impl Responder, DBError> {
+	log::debug!("Inserting Product named \"{}\" into product list", prod.name());
 	let mut tx = db.get_ref()
 		.begin()
 		.await
 		.map_err(DBError::from)?;
 	let product = sqlx::query!(
-		"INSERT INTO products(kind, name, price, max_num, ingredients) VALUES (?, ?, ?, ?, ?) RETURNING *",
-		prod.product.kind(), prod.product.name(),
-		prod.product.price(), prod.product.max_num(), prod.product.ingredients()
+		"INSERT INTO products(kind, name, price, max_num, ingredients, image) VALUES (?, ?, ?, ?, ?, ?) RETURNING *",
+		prod.kind(), prod.name(),
+		prod.price(), prod.max_num(),
+		prod.ingredients(), prod.image()
 	).fetch_one(&mut tx)
 	 .await
 	 .map(make_product_from_row)
@@ -75,5 +69,6 @@ fn make_product_from_row(item: sqlx::mysql::MySqlRow) -> Product {
 		price: item.get("price"),
 		max_num: item.get("max_num"),
 		ingredients: item.get("ingredients"),
+		image: item.get("image")
 	}
 }
