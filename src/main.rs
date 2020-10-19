@@ -75,7 +75,7 @@ async fn main() -> std::io::Result<()> {
 	)?.disable_signals()
 		.run();
 
-	let sigHandler = {
+	let sig_handler = {
 		let server = server.clone();
 		#[cfg(not(unix))]
 		{
@@ -129,7 +129,7 @@ async fn main() -> std::io::Result<()> {
 			)
 		}
 	};
-	futures::join![sigHandler, server, database_cleanse_routine, cache_clearing_routine].1
+	futures::join![sig_handler, server, database_cleanse_routine, cache_clearing_routine].1
 }
 
 fn wait_until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = bool>> {
