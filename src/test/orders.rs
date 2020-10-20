@@ -34,6 +34,13 @@ pub(super) async fn orders_test(database: sqlx::MySqlPool) {
 		resp
 	};
 
+	//JSON Auth Token
+	let auth = r#"{
+  "sub": "test",
+  "exp": "2020-10-20T22:24:38.701Z",
+  "idempotency": "test",
+}"#;
+
 	//Get
 	{
 		let req = test::TestRequest::get()
