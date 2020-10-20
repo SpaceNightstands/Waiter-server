@@ -88,3 +88,14 @@ impl Display for StaticError {
 		Display::fmt(&self.1, f)
 	}
 }
+
+#[derive(Debug)]
+pub(super) struct EnumError(pub(super) &'static str);
+
+impl std::error::Error for EnumError {}
+
+impl Display for EnumError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.write_str(self.0)
+	}
+}
