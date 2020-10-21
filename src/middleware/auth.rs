@@ -5,7 +5,10 @@ use actix_web::{
 		ServiceRequest,
 		ServiceResponse,
 	},
-	http::StatusCode,
+	http::{
+		self,
+		StatusCode
+	},
 	Error as axError
 };
 use sqlx::types::chrono;
@@ -15,21 +18,36 @@ use std::sync::Arc;
 pub type Key = hmac::Hmac<sha2::Sha256>;
 type DateTime = chrono::DateTime<chrono::FixedOffset>;
 
+#[cfg(test)]
+#[derive(serde::Serialize, serde::Deserialize, derive_getters::Getters)]
+pub(crate) struct AuthToken {
+	pub(crate) sub: String, //subject
+	#[serde(with = "datetime")]
+	pub(crate) exp: DateTime, //Expiration Time
+	pub(crate) idempotency: String //idempotency token
+}
+
+#[cfg(not(test))]
 #[derive(serde::Deserialize, derive_getters::Getters)]
 pub(crate) struct AuthToken {
 	sub: String, //subject
-	#[serde(deserialize_with = "deser_datetime")]
+	#[serde(with = "datetime")]
 	exp: DateTime, //Expiration Time
 	idempotency: String //idempotency token
 }
 
-fn deser_datetime<'de, D: serde::Deserializer<'de>>(deser: D) -> Result<DateTime, D::Error> {
-	let timestamp = <&str as serde::Deserialize>::deserialize(deser)?;
-	DateTime::parse_from_rfc3339(
-		timestamp
-	).map_err(
-		|err| serde::de::Error::custom(err)
-	)
+mod datetime {
+	use super::DateTime;
+
+	pub(super) fn serialize<S: serde::Serializer>(tstamp: &DateTime, ser: S) -> Result<S::Ok, S::Error> {
+		ser.serialize_str(&*tstamp.to_rfc3339())
+	}
+
+	pub(super) fn deserialize<'de, D: serde::Deserializer<'de>>(deser: D) -> Result<DateTime, D::Error> {
+		let timestamp = <&str as serde::Deserialize>::deserialize(deser)?;
+		DateTime::parse_from_rfc3339(timestamp)
+			.map_err(serde::de::Error::custom)
+	}
 }
 
 pub struct JWTAuth(pub Arc<Key>);
@@ -89,7 +107,7 @@ where
 	fn call(&mut self, mut req: Self::Request) -> Self::Future {
 		//Authorization: Bearer <token>
 		use future::err;
-		let header = if let Some(header) = req.headers().get("Authorization") {
+		let header = if let Some(header) = req.headers().get(http::header::AUTHORIZATION) {
 			match header.to_str() {
 				Ok(header) => header,
 				Err(error) => return Box::pin(
