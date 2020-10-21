@@ -53,7 +53,7 @@ pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>,
 async fn delete_data(db: &MySqlPool) -> Result<(), Error> {
 	let mut tx = db.begin().await?;
 	sqlx::query!(
-		"TRUNCATE TABLE orders"
+		"DELETE FROM orders"
 	).execute(&mut tx)
 		.await?;
 	sqlx::query!(
