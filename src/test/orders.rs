@@ -1,23 +1,54 @@
-use crate::model::*;
-use actix_web::test;
-use actix_web::dev::Service;
+use crate::{
+	model::*,
+	middleware::auth
+};
+use actix_web::{
+	test,
+	dev::Service
+};
+use sqlx::types::chrono;
+use hmac::NewMac;
+use jwt::SignWithKey;
 /*
-async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<impl Responder, Error>
 async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)>>, req: web::HttpRequest) -> Result<impl Responder, Error>
 */
 
-pub(super) async fn orders_test(database: sqlx::MySqlPool) {
+pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
+	let key = std::sync::Arc::new(
+		auth::Key::new_varkey(
+			dotenv_codegen::dotenv!("JWT_SECRET").as_bytes()
+		).unwrap()
+	);
+
 	let mut service = test::init_service(
 		actix_web::App::new()
 			.data(database.clone())
+			.wrap(auth::JWTAuth(key.clone()))
 			.service(crate::api::order::get_service())
 			.service(crate::api::menu::get_service())
 	).await;
 
+	//JSON Auth Token
+	let auth: String = {
+		let auth = auth::AuthToken {
+			sub: "test".to_string(),
+			exp: chrono::Utc::today()
+				.succ()
+				.succ()
+				.and_hms(0, 0, 0)
+				.with_timezone(&chrono::FixedOffset::east(0)),
+			idempotency: "test".to_string(),
+		};
+		auth.sign_with_key(&*key).unwrap()
+	};
+
 	let prod = {
 		let req = test::TestRequest::put()
 			.uri("/menu")
-			.set_json(
+			.header(
+				actix_web::http::header::AUTHORIZATION,
+				format!("Bearer {}", auth)
+			).set_json(
 				&Product {
 					id: 0,
 					kind: ProductKind::Available,
@@ -31,24 +62,37 @@ pub(super) async fn orders_test(database: sqlx::MySqlPool) {
 		let resp: Product = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		resp
+		*resp.id()
 	};
 
-	//JSON Auth Token
-	let auth = r#"{
-  "sub": "test",
-  "exp": "2020-10-20T22:24:38.701Z",
-  "idempotency": "test",
-}"#;
-
+	//Put
+	{
+		let req = test::TestRequest::put()
+			.uri("/order")
+			.header(
+				actix_web::http::header::AUTHORIZATION,
+				format!("Bearer {}", auth)
+			).set_json(
+				&vec![(prod, 1), (prod, 2)]
+			).to_request();
+		let resp = test::read_body(
+			service.call(req).await.unwrap()
+		).await;
+		println!("{:?}", resp);
+		//assert_eq!(resp[0], prod, "Sample: {:?}\n\nResponse: {:?}", prod, resp);
+	}
 	//Get
 	{
 		let req = test::TestRequest::get()
 			.uri("/order")
-			.to_request();
-		let resp: Vec<Product> = test::read_body_json(
+			.header(
+				actix_web::http::header::AUTHORIZATION,
+				format!("Bearer {}", auth)
+			).to_request();
+		let resp = test::read_body(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(resp[0], prod, "Sample: {:?}\n\nResponse: {:?}", prod, resp);
+		println!("{:?}", resp);
+		//assert_eq!(resp[0], prod, "Sample: {:?}\n\nResponse: {:?}", prod, resp);
 	}
 }

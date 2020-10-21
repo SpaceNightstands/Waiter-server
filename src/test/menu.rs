@@ -2,7 +2,7 @@ use crate::model::*;
 use actix_web::test;
 use actix_web::dev::Service;
 
-pub(super) async fn menu_test(database: sqlx::MySqlPool) {
+pub(super) async fn menu_test(database: &sqlx::MySqlPool) {
 	let mut service = test::init_service(
 		actix_web::App::new()
 			.data(database.clone())

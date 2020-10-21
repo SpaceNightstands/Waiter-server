@@ -11,8 +11,8 @@ async fn test() {
 	//TODO: make concurrent tests
 	/*As of right now, these rely on the database being empty
 	  which means that we can't test multiple endpoints/actix services safely*/
-	menu::menu_test(db.clone()).await;
-	assert_eq!(0, 1);
+	menu::menu_test(&db).await;
+	orders::orders_test(&db).await;
 
 	/*If an assertion fails, the unwinding
 	  test won't wipe the database.
@@ -33,6 +33,6 @@ async fn wipe_db(db: &MySqlPool) {
 		"ALTER TABLE products AUTO_INCREMENT = 1"
 	];
 	for query in queries.iter() {
-		println!("{:?}", sqlx::query(query).execute(db).await);
+		sqlx::query(query).execute(db).await.unwrap();
 	}
 }
