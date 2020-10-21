@@ -30,7 +30,7 @@ async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<i
 		if let Some(item) = result_ok_log(item) {
 			if let Some(order) = orders.last_mut() {
 				if order.id() == &item.id {
-					order.cart.push(
+					order.cart_mut().push(
 						(item.item, item.quantity)
 					);
 					continue;
@@ -75,11 +75,12 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 		.map_err(DBError::from)
     .map(
 			|row| Order {
-				id: row.get("id"),
-				owner: row.get("owner"),
+				id: row.get(0),
+				owner: row.get(1),
 				cart: Vec::new()
 			}
 		)?;
+	log::debug!("{:?}", order);
 	for (item, quantity) in cart.drain(..) {
 		sqlx::query!(
 			"INSERT INTO carts VALUES (?, ?, ?) RETURNING item, quantity",
@@ -87,8 +88,8 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 		).fetch_one(&mut tx)
 		 .await
 		 .map(
-			 |row| order.cart.push(
-				 (row.get("item"), row.get("quantity"))
+			 |row| order.cart_mut().push(
+				 (row.get(0), row.get(1))
 			 )
 		 )
 		 .map_err(DBError::from)?;
