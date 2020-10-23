@@ -4,5 +4,6 @@ CREATE TABLE carts (
 	item INT UNSIGNED NOT NULL,
 	quantity INT UNSIGNED NOT NULL,
 	FOREIGN KEY(`order`) REFERENCES orders (id) ON DELETE CASCADE,
-	FOREIGN KEY(item) REFERENCES products (id)
+	FOREIGN KEY(item) REFERENCES products (id),
+	UNIQUE order_item_pair(`order`,item)
 )
