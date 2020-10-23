@@ -31,6 +31,7 @@ async fn main() -> std::io::Result<()> {
 
 	//Create JWT Key
 	use hmac::NewMac;
+	//TODO: Test AtomicPtr
 	let key = std::sync::Arc::new(
 		auth::Key::new_varkey(
 				env_var("JWT_SECRET")
@@ -64,7 +65,7 @@ async fn main() -> std::io::Result<()> {
 			.wrap(cache::IdempotencyCache(cache))
 			.wrap(auth::JWTAuth(key))
 			.wrap(middleware::Logger::default())
-			.service(menu::get_service())
+			.service(menu::get_service(None))
 			.service(order::get_service())
 	}).bind(
 		format!(

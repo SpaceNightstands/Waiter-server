@@ -6,7 +6,7 @@ pub(super) async fn menu_test(database: &sqlx::MySqlPool) {
 	let mut service = test::init_service(
 		actix_web::App::new()
 			.data(database.clone())
-			.service(crate::api::menu::get_service())
+			.service(crate::api::menu::get_service(None))
 	).await;
 
 	let prod = Product {

@@ -1,5 +1,6 @@
 mod menu;
 mod orders;
+mod integration;
 use sqlx::MySqlPool;
 
 #[actix_rt::test]
@@ -13,6 +14,7 @@ async fn test() {
 	  which means that we can't test multiple endpoints/actix services safely*/
 	menu::menu_test(&db).await;
 	orders::orders_test(&db).await;
+	integration::integration_test(&db).await;
 
 	/*If an assertion fails, the unwinding
 	  test won't wipe the database.

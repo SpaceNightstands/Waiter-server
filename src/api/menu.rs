@@ -3,12 +3,23 @@ use super::prelude::{
 	error::DatabaseError as DBError,
 	model::Product
 };
+use crate::middleware::filter;
 
-pub fn get_service() -> actix_web::Scope{
-	web::scope("/menu")
-    .route("", web::get().to(get_menu))
-    .route("", web::put().to(put_menu))
-    .route("/{id}", web::delete().to(delete_menu))
+pub fn get_service<T: Into<Option<filter::SubList>>>(filter: T) -> actix_web::Scope{
+	let filter = filter.into();
+	let scope = web::scope("/menu")
+    .route("", web::get().to(get_menu));
+	if let Some(filter) = filter {
+    scope.service(
+			web::scope("")
+				.wrap(filter::SubjectFilter(filter))
+				.route("", web::put().to(put_menu))
+				.route("/{id}", web::delete().to(delete_menu))
+		)
+	} else {
+		scope.route("", web::put().to(put_menu))
+			.route("/{id}", web::delete().to(delete_menu))
+	}
 }
 
 async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {

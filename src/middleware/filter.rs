@@ -11,11 +11,12 @@ use actix_web::{
 use futures::future;
 use super::auth::AuthToken;
 
-type SubList<'s> = std::sync::Arc<[&'s str]>;
+//TODO: Move to a HashSet, or generalize over some "Searchable" trait
+pub type SubList = std::sync::Arc<[String]>;
 
-pub struct SubjectFilter<'s>(SubList<'s>);
+pub struct SubjectFilter(pub SubList);
 
-impl<'s, S, B> dev::Transform<S> for SubjectFilter<'s>
+impl<S, B> dev::Transform<S> for SubjectFilter
 where
 	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = axError>,
 	S::Future: 'static,
@@ -29,7 +30,7 @@ where
 
 	type InitError = ();
 
-	type Transform = SubjectFilterService<'s, S>;
+	type Transform = SubjectFilterService<S>;
 
 	type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
 
@@ -43,12 +44,12 @@ where
 	}
 }
 
-pub struct SubjectFilterService<'s, S: Service>{
+pub struct SubjectFilterService<S: Service>{
 	service: S,
-	authorized: SubList<'s>
+	authorized: SubList
 }
 
-impl<'s, S, B> Service for SubjectFilterService<'s, S>
+impl<S, B> Service for SubjectFilterService<S>
 where
 	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = axError>,
 	S::Future: 'static,
@@ -71,10 +72,10 @@ where
 		let ext = req.head().extensions();
 		let subject = ext.get::<AuthToken>()
 			.map(
-				|token| &**token.sub()
+				|token| token.sub()
 			);
 		match subject {
-			Some(ref sub) => {
+			Some(sub) => {
 				if self.authorized.contains(sub) {
 					std::mem::drop(ext);
 					return Box::pin(self.service.call(req))

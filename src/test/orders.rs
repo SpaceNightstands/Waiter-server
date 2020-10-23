@@ -23,7 +23,7 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 			.data(database.clone())
 			.wrap(auth::JWTAuth(key.clone()))
 			.service(crate::api::order::get_service())
-			.service(crate::api::menu::get_service())
+			.service(crate::api::menu::get_service(None))
 	).await;
 
 	//JSON Auth Token
@@ -106,7 +106,6 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 	};
 	//Put
 	{
-
 		let req = test::TestRequest::put()
 			.uri("/order")
 			.header(
