@@ -28,7 +28,7 @@ pub(super) async fn menu_test(database: &sqlx::MySqlPool) {
 		let resp: Product = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(resp, prod, "Sample: {:?}\n\nResponse: {:?}", prod, resp);
+		assert_eq!(resp, prod, "Expected: {:?}\n\nResponse: {:?}", prod, resp);
 	}
 	//Get
 	{
@@ -38,7 +38,7 @@ pub(super) async fn menu_test(database: &sqlx::MySqlPool) {
 		let resp: Vec<Product> = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(resp[0], prod, "Sample: {:?}\n\nResponse: {:?}", prod, resp);
+		assert_eq!(resp[0], prod, "Expected: {:?}\n\nResponse: {:?}", prod, resp);
 	}
 	//Delete
 	{
@@ -48,7 +48,7 @@ pub(super) async fn menu_test(database: &sqlx::MySqlPool) {
 		let resp: Product = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(resp, prod, "Sample: {:?}\n\nResponse: {:?}", prod, resp);
+		assert_eq!(resp, prod, "Expected: {:?}\n\nResponse: {:?}", prod, resp);
 		let req = test::TestRequest::get()
 			.uri("/menu")
 			.to_request();

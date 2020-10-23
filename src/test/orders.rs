@@ -4,14 +4,12 @@ use crate::{
 };
 use actix_web::{
 	test,
-	dev::Service
+	dev::Service,
+	http
 };
 use sqlx::types::chrono;
 use hmac::NewMac;
 use jwt::SignWithKey;
-/*
-async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)>>, req: web::HttpRequest) -> Result<impl Responder, Error>
-*/
 
 pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 	let key = std::sync::Arc::new(
@@ -46,7 +44,7 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 		let req = test::TestRequest::put()
 			.uri("/menu")
 			.header(
-				actix_web::http::header::AUTHORIZATION,
+				http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
 			).set_json(
 				&Product {
@@ -65,21 +63,66 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 		*resp.id()
 	};
 
-	//Put
+	//Wrong Put's
 	{
 		let req = test::TestRequest::put()
 			.uri("/order")
 			.header(
-				actix_web::http::header::AUTHORIZATION,
+				http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
 			).set_json(
-				&vec![(prod, 1), (prod, 2)]
+				&[(prod, 4)] //4 is over max_num for the prod product
 			).to_request();
-		let resp = test::read_body(
+		let resp = service.call(req).await.unwrap();
+		assert_eq!(
+			resp.status(),
+			http::StatusCode::INTERNAL_SERVER_ERROR,
+			"\nExpected: {:?}\nResponse: {:?}",
+			http::StatusCode::INTERNAL_SERVER_ERROR, resp
+		);
+	}
+	{
+		let req = test::TestRequest::put()
+			.uri("/order")
+			.header(
+				http::header::AUTHORIZATION,
+				format!("Bearer {}", auth)
+			).set_json::<[(u32, u32); 0]>(
+				&[]
+			).to_request();
+		let resp = service.call(req).await.unwrap();
+		assert_eq!(
+			resp.status(),
+			http::StatusCode::BAD_REQUEST,
+			"\nExpected: {:?}\nResponse: {:?}",
+			http::StatusCode::BAD_REQUEST, resp
+		);
+	}
+
+	let expected = Order {
+		id: 2,
+		owner: "test".to_string(),
+		cart: vec![(2, 3)]
+	};
+	//Put
+	{
+
+		let req = test::TestRequest::put()
+			.uri("/order")
+			.header(
+				http::header::AUTHORIZATION,
+				format!("Bearer {}", auth)
+			).set_json(
+				&[(prod, 3)]
+			).to_request();
+		let resp: Order = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		println!("{:?}", resp);
-		//assert_eq!(resp[0], prod, "Sample: {:?}\n\nResponse: {:?}", prod, resp);
+		assert_eq!(
+			resp, expected,
+			"Sample: {:?}\nResponse: {:?}",
+			expected, resp
+		);
 	}
 	//Get
 	{
@@ -89,10 +132,9 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 				actix_web::http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
 			).to_request();
-		let resp = test::read_body(
+		let resp: Vec<Order> = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		println!("{:?}", resp);
-		//assert_eq!(resp[0], prod, "Sample: {:?}\n\nResponse: {:?}", prod, resp);
+		assert_eq!(resp[0], expected, "Expected: {:?}\n\nResponse: {:?}", expected, resp);
 	}
 }
