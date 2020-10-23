@@ -19,7 +19,7 @@ pub type Key = hmac::Hmac<sha2::Sha256>;
 type DateTime = chrono::DateTime<chrono::FixedOffset>;
 
 #[cfg(test)]
-#[derive(serde::Serialize, serde::Deserialize, derive_getters::Getters)]
+#[derive(serde::Serialize, serde::Deserialize, derive_getters::Getters, Clone)]
 pub(crate) struct AuthToken {
 	pub(crate) sub: String, //subject
 	#[serde(with = "datetime")]
