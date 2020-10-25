@@ -1,4 +1,3 @@
-use crate::error::StaticError;
 use actix_web::{
 	dev::{
 		self,
@@ -7,10 +6,13 @@ use actix_web::{
 		ServiceResponse
 	},
 	http::StatusCode,
-	Error as axError
+	Error as AxError
 };
 use futures::future;
-use super::auth::AuthToken;
+use super::{
+	auth::AuthToken,
+	prelude::Error
+};
 use futures::{
 	future::FutureExt,
 	channel::oneshot
@@ -43,7 +45,7 @@ pub struct IdempotencyCache(pub Cache);
 
 impl<S, B> dev::Transform<S> for IdempotencyCache
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = axError>,
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static
 {
@@ -76,7 +78,7 @@ pub struct IdempotencyCacheService<S: Service>{
 
 impl<S, B> Service for IdempotencyCacheService<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = axError>,
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static
 {
@@ -104,10 +106,7 @@ where
 				if self.cache.contains(idempotency) {
 					Box::pin(
 						future::err(
-							StaticError::new(
-								StatusCode::BAD_REQUEST,
-								"Invalid idemp token"
-							).into()
+							idemp_error("Invalid idemp token").into()
 						)
 					)
 				} else {
@@ -129,10 +128,17 @@ where
 			},
 			None => Box::pin(
 				future::err(
-					StaticError::new(StatusCode::UNAUTHORIZED, "Invalid JWT").into()
+					idemp_error("Invalid JWT").into()
 				)
 			)
 		}
 	}
 }
 
+const fn idemp_error(message: &'static str) -> Error {
+	Error::Static {
+		status: StatusCode::UNAUTHORIZED,
+		reason: "IdempotencyCache",
+		message
+	}
+}

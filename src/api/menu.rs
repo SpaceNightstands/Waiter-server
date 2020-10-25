@@ -1,6 +1,5 @@
 use super::prelude::{
 	*,
-	error::DatabaseError as DBError,
 	model::Product
 };
 use crate::middleware::filter;
@@ -31,12 +30,12 @@ async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
 	web::Json(products)
 }
 
-async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<impl Responder, DBError> {
+async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<impl Responder, Error> {
 	log::debug!("Inserting Product named \"{}\" into product list", prod.name());
 	let mut tx = db.get_ref()
 		.begin()
 		.await
-		.map_err(DBError::from)?;
+		.map_err(Error::from)?;
 	let product = sqlx::query!(
 		"INSERT INTO products(kind, name, price, max_num, ingredients, image) VALUES (?, ?, ?, ?, ?, ?) RETURNING *",
 		prod.kind(), prod.name(),
@@ -45,25 +44,25 @@ async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<
 	).fetch_one(&mut tx)
 	 .await
 	 .map(make_product_from_row)
-	 .map_err(DBError::from)?;
-	tx.commit().await.map_err(DBError::from)?;
+	 .map_err(Error::from)?;
+	tx.commit().await.map_err(Error::from)?;
 	Ok(web::Json(product))
 }
 
-async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, DBError> {
+async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, Error> {
 	log::debug!("Deleting Product {} from product list", id);
 	let mut tx = db.get_ref()
 		.begin()
 		.await
-		.map_err(DBError::from)?;
+		.map_err(Error::from)?;
 	let product = sqlx::query!(
 		"DELETE FROM products WHERE id = ? RETURNING *",
 		id	
 	).fetch_one(&mut tx)
 	 .await
 	 .map(make_product_from_row)
-	 .map_err(DBError::from)?;
-	tx.commit().await.map_err(DBError::from)?;
+	 .map_err(Error::from)?;
+	tx.commit().await.map_err(Error::from)?;
 	Ok(web::Json(product))
 }
 

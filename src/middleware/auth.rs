@@ -1,3 +1,4 @@
+use super::prelude::*;
 use actix_web::{
 	dev::{
 		self,
@@ -112,26 +113,29 @@ where
 				Ok(header) => header,
 				Err(error) => return Box::pin(
 					err(
-						AuthError(error).into()
+						Error::from(error).into()
 					)
 				)
 			}
 		} else {
 			return Box::pin(
 				err(
-					StaticError("Couldn't find Authorization header").into()
+					auth_error(
+						"Couldn't find Authorization header"
+					).into()
 				)
 			)
 		};
 
 		let claims: Result<AuthToken, jwt::Error> = if let Some(token) = header.trim().strip_prefix("Bearer "){
 			use jwt::VerifyWithKey;
-
 			token.verify_with_key(self.key.as_ref())
 		} else {
 			return Box::pin(
 				err(
-					StaticError("Authorization header doesn't start with \"Bearer \"").into()
+					auth_error(
+						"Authorization header doesn't start with \"Bearer \""
+					).into()
 				)
 			)
 		};
@@ -146,22 +150,21 @@ where
 				} else {
 					Box::pin(
 						err(
-							StaticError("JWT Token expired").into()
+							auth_error("JWT Token expired").into()
 						)
 					)
 				}
 			},
-			Err(error) => Box::pin(err(AuthError(error).into()))
+			Err(error) => Box::pin(err(Error::from(error).into()))
 		}
 	}
 }
 
 #[inline]
-fn AuthError<T: std::error::Error>(err: T) -> crate::error::DebugError<T> {
-	crate::error::DebugError::new(StatusCode::UNAUTHORIZED, err)
-}
-
-#[inline]
-fn StaticError(err: &'static str) -> crate::error::StaticError {
-	crate::error::StaticError::new(StatusCode::UNAUTHORIZED, err)
+const fn auth_error(message: &'static str) -> Error {
+	Error::Static {
+		status: StatusCode::UNAUTHORIZED,
+		reason: "Authorization",
+		message
+	}
 }

@@ -1,9 +1,7 @@
 use super::prelude::{
 	*,
-	error::DatabaseError as DBError,
 	model::Order
 };
-use actix_web::Error;
 use sqlx::Row;
 
 pub fn get_service() -> actix_web::Scope{
@@ -54,10 +52,11 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 	let owner = get_auth_token(&owner)?;
 	if cart.len() <= 0 {
 		return Err(
-			error::StaticError::new(
-				actix_web::http::StatusCode::BAD_REQUEST,
-				"The cart is empty"
-			).into()
+			Error::Static{
+				status: actix_web::http::StatusCode::BAD_REQUEST,
+				reason: "Request",
+				message: "The cart is empty"
+			}.into()
 		)
 	}
 
@@ -65,14 +64,14 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 	let mut tx = db.get_ref()
 		.begin()
 		.await
-		.map_err(DBError::from)?;
+		.map_err(Error::from)?;
 
 	let mut order = sqlx::query!(
 		"INSERT INTO orders(owner) VALUES (?) RETURNING id, owner",
 		owner.sub()
 	).fetch_one(&mut tx)
 		.await
-		.map_err(DBError::from)
+		.map_err(Error::from)
     .map(
 			|row| Order {
 				id: row.get(0),
@@ -92,10 +91,10 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 				 (row.get(0), row.get(1))
 			 )
 		 )
-		 .map_err(DBError::from)?;
+		 .map_err(Error::from)?;
 	}
 
-	tx.commit().await.map_err(DBError::from)?;
+	tx.commit().await.map_err(Error::from)?;
 	Ok(web::Json(order))
 }
 
@@ -127,15 +126,16 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 
 //Utils: 
 #[inline]
-fn get_auth_token<'r>(req: &'r std::cell::Ref<'_, actix_web::dev::Extensions>) -> Result<&'r AuthToken, error::StaticError>{
+fn get_auth_token<'r>(req: &'r std::cell::Ref<'_, actix_web::dev::Extensions>) -> Result<&'r AuthToken, Error>{
 	req.get::<AuthToken>()
     .ok_or(AuthError())
 }
 
-const fn AuthError() -> error::StaticError {
-	error::StaticError::new(
-		actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
-		"JWT Token wasn't correctly validated"
-	)
+const fn AuthError() -> Error {
+	Error::Static{
+		status: actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+		reason: "Authentication",
+		message: "JWT Token wasn't correctly validated"
+	}
 }
 

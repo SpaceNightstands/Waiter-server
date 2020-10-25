@@ -6,10 +6,13 @@ use actix_web::{
 		ServiceResponse
 	},
 	http::StatusCode,
-	Error as axError
+	Error as AxError
 };
 use futures::future;
-use super::auth::AuthToken;
+use super::{
+	auth::AuthToken,
+	prelude::*
+};
 
 //TODO: Move to a HashSet, or generalize over some "Searchable" trait
 pub type SubList = std::sync::Arc<[String]>;
@@ -18,7 +21,7 @@ pub struct SubjectFilter(pub SubList);
 
 impl<S, B> dev::Transform<S> for SubjectFilter
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = axError>,
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static
 {
@@ -51,7 +54,7 @@ pub struct SubjectFilterService<S: Service>{
 
 impl<S, B> Service for SubjectFilterService<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = axError>,
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static
 {
@@ -82,14 +85,14 @@ where
 				} else {
 					Box::pin(
 						future::err(
-							StaticError("Account is not authorized").into()
+							filter_error("Account is not authorized").into()
 						)
 					)
 				}
 			},
 			None => Box::pin(
 				future::err(
-					StaticError("Invalid JWT").into()
+					filter_error("Invalid JWT").into()
 				)
 			)
 		}
@@ -97,6 +100,10 @@ where
 }
 
 #[inline]
-fn StaticError(err: &'static str) -> crate::error::StaticError {
-	crate::error::StaticError::new(StatusCode::UNAUTHORIZED, err)
+const fn filter_error(message: &'static str) -> Error {
+	Error::Static{
+		status: StatusCode::UNAUTHORIZED,
+		reason: "SubFilter",
+		message
+	}
 }

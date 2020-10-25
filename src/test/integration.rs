@@ -66,7 +66,7 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 		let resp = service.call(req).await
 			.err()
 			.unwrap();
-		resp.as_error::<crate::error::StaticError>()
+		resp.as_error::<crate::error::Error>()
 			.unwrap();
 		//TODO: maybe add an assertion?
 	}
