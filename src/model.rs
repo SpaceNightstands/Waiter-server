@@ -1,3 +1,7 @@
+use std::{
+	fmt::Debug,
+	pin::Pin
+};
 use serde::{Serialize, Deserialize};
 use sqlx::{
 	Database,
@@ -5,7 +9,6 @@ use sqlx::{
 	Encode,
 	Type
 };
-use std::fmt::Debug;
 use derive_getters::Getters;
 
 pub(super) use impls::*;
@@ -93,8 +96,8 @@ impl std::convert::Into<&'static str> for &ProductKind {
 }
 
 impl Order {
-	pub(crate) fn cart_mut(&mut self) -> &mut Vec<(u32, u32)> {
-		&mut self.cart
+	pub(crate) fn cart_mut(&mut self) -> Pin<&mut Vec<(u32, u32)>> {
+		Pin::new(&mut self.cart)
 	}
 }
 
