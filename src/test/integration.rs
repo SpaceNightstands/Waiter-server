@@ -19,7 +19,8 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 		).unwrap()
 	);
 	let cache = Arc::new(dashmap::DashSet::new());
-	let filter: Arc<[String]> = vec!["admin".to_string()].into();
+	let mut filter = std::collections::HashSet::with_capacity(1);
+	filter.insert("admin".to_string());
 
 	let mut service = test::init_service(
 		actix_web::App::new()
@@ -27,7 +28,7 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 			.wrap(cache::IdempotencyCache(cache))
 			.wrap(auth::JWTAuth(key.clone()))
 			.wrap(actix_web::middleware::Logger::default())
-			.service(menu::get_service(filter))
+			.service(menu::get_service(Arc::new(filter)))
 			.service(order::get_service())
 	).await;
 

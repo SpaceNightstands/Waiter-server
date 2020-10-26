@@ -14,8 +14,7 @@ use super::{
 	prelude::*
 };
 
-//TODO: Move to a HashSet, or generalize over some "Searchable" trait
-pub type SubList = std::sync::Arc<[String]>;
+pub type SubList = std::sync::Arc<std::collections::HashSet<String>>;
 
 pub struct SubjectFilter(pub SubList);
 
