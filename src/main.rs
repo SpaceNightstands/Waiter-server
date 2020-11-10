@@ -31,7 +31,7 @@ async fn main() -> std::io::Result<()> {
 
 	//Create JWT Key
 	use hmac::NewMac;
-	//TODO: Test AtomicPtr
+	//TODO: Test NonNull pointer
 	let key = std::sync::Arc::new(
 		auth::Key::new_varkey(
 			env_var("JWT_SECRET")
