@@ -40,6 +40,16 @@ async fn main() -> std::io::Result<()> {
 		).unwrap()
 	);
 
+	//Admins are the only google accounts able to edit the menu
+	let admins = env_var("ADMINS")
+    .map(
+			|string| filter::SubList::new(
+				string.split(',')
+					.map(String::from)
+					.collect::<std::collections::HashSet<String>>()
+			)
+		).ok();
+
 	//Create Cache and get clearing routine future
 	let (cache, cache_stopper) = cache::make_impedency_cache().await;
 
@@ -48,7 +58,8 @@ async fn main() -> std::io::Result<()> {
 		&*env_var("DATABASE_URL")
 			.expect("Environment variable DATABASE_URL not set"),
 	).await
-	 .expect("Couldn't connect to database");
+		.expect("Couldn't connect to database");
+
 
 	use actix_web::{
 		HttpServer,
@@ -58,6 +69,7 @@ async fn main() -> std::io::Result<()> {
 	let server = HttpServer::new(move || {
 		let key = key.clone();
 		let cache = cache.clone();
+		let admins = admins.clone();
 		//TODO: Add host guard
 		//Middleware is executed in reverse registration order
 		App::new()
@@ -65,7 +77,7 @@ async fn main() -> std::io::Result<()> {
 			.wrap(cache::IdempotencyCache(cache))
 			.wrap(auth::JWTAuth(key))
 			.wrap(middleware::Logger::default())
-			.service(menu::get_service(None))
+			.service(menu::get_service(admins))
 			.service(order::get_service())
 	}).bind(
 		format!(
