@@ -34,10 +34,10 @@ async fn main() -> std::io::Result<()> {
 	//TODO: Test AtomicPtr
 	let key = std::sync::Arc::new(
 		auth::Key::new_varkey(
-				env_var("JWT_SECRET")
-					.expect("Environment variable DATABASE_URL not set")
-					.as_bytes()
-			).unwrap()
+			env_var("JWT_SECRET")
+				.expect("Environment variable DATABASE_URL not set")
+				.as_bytes()
+		).unwrap()
 	);
 
 	//Create Cache and get clearing routine future
@@ -76,10 +76,10 @@ async fn main() -> std::io::Result<()> {
 	)?.disable_signals()
 		.run();
 
-	let sig_handler = {
+	{
 		let server = server.clone();
 		#[cfg(not(unix))]
-		{
+		actix_rt::spawn(
 			actix_rt::signal::ctrl_c()
 				.then(
 					|_| async move {
@@ -87,7 +87,7 @@ async fn main() -> std::io::Result<()> {
 						stopper(server, database_stopper, cache_stopper).await
 					}
 				)
-		}
+		);
 		#[cfg(unix)]
 		{
 			use actix_rt::signal::unix::{
@@ -114,23 +114,25 @@ async fn main() -> std::io::Result<()> {
 			}
 
 			use std::task::Poll;
-			futures::future::poll_fn(
-				move |ctx|{
-					for sig in signals.iter_mut() {
-						if let Poll::Ready(Some(())) = sig.poll_recv(ctx) {
-							return Poll::Ready(())
+			actix_rt::spawn(
+				futures::future::poll_fn(
+					move |ctx|{
+						for sig in signals.iter_mut() {
+							if let Poll::Ready(Some(())) = sig.poll_recv(ctx) {
+								return Poll::Ready(())
+							}
 						}
+						Poll::Pending
 					}
-					Poll::Pending
-				}
-			).then(
-				|_| async move {
-					stopper(server, database_stopper, cache_stopper).await
-				}
+				).then(
+					|_| async move {
+						stopper(server, database_stopper, cache_stopper).await
+					}
+				)
 			)
 		}
 	};
-	futures::join![sig_handler, server].1
+	server.await
 }
 
 fn wait_until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = bool>> {
