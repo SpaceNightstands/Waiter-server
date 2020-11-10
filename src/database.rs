@@ -11,7 +11,7 @@ use futures::{
 	future::FutureExt
 };
 
-pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>, impl std::future::Future), Error> {
+pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>), Error> {
 	let conn = MySqlPool::connect(db_url).await?;
 	/*Check last order list addition,
 		truncate if older than a day
@@ -30,23 +30,25 @@ pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>,
 	}
 
 	let (routine_stopper, recv) = oneshot::channel::<()>();
-	let cleaning_routine = {
+	{
 		let conn = conn.clone();
-		async move {
-			log::debug!("Scheduled Database wiper");
-			let mut recv = recv.fuse();
-			loop {
-				futures::select_biased! {
-					_ = recv => break,
-					is_past_midnight = crate::wait_until_midnight() => if is_past_midnight {
-						log::debug!("Truncating Database");
-						delete_data(&conn).await.unwrap();
+		actix_rt::spawn(
+			async move {
+				log::debug!("Scheduled Database wiper");
+				let mut recv = recv.fuse();
+				loop {
+					futures::select_biased! {
+						_ = recv => break,
+						is_past_midnight = crate::wait_until_midnight() => if is_past_midnight {
+							log::debug!("Truncating Database");
+							delete_data(&conn).await.unwrap();
+						}
 					}
 				}
 			}
-		}
+		);
 	};
-	Ok((conn, routine_stopper, cleaning_routine))
+	Ok((conn, routine_stopper))
 }
 
 #[inline]

@@ -20,25 +20,27 @@ use futures::{
 
 pub type Cache = std::sync::Arc<dashmap::DashSet<String>>;
 
-pub async fn make_impedency_cache() -> (Cache, oneshot::Sender<()>, impl std::future::Future) {
+pub async fn make_impedency_cache() -> (Cache, oneshot::Sender<()>) {
 	let cache = Cache::new(dashmap::DashSet::new());
 	let (routine_stopper, recv) = oneshot::channel::<()>();
-	let cleaning_routine = {
+	{
 		let cache = cache.clone();
-		async move {
-			log::debug!("Scheduled Cache clearer");
-			let mut recv = recv.fuse();
-			loop {
-				futures::select_biased! {
-					_ = recv => break,
-					is_past_midnight = crate::wait_until_midnight() => if is_past_midnight {
-						cache.clear();
+		actix_rt::spawn(
+			async move {
+				log::debug!("Scheduled Cache clearer");
+				let mut recv = recv.fuse();
+				loop {
+					futures::select_biased! {
+						_ = recv => break,
+						is_past_midnight = crate::wait_until_midnight() => if is_past_midnight {
+							cache.clear();
+						}
 					}
 				}
 			}
-		}
+		)
 	};
-	(cache, routine_stopper, cleaning_routine)
+	(cache, routine_stopper)
 }
 
 pub struct IdempotencyCache(pub Cache);

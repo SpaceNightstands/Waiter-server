@@ -41,10 +41,10 @@ async fn main() -> std::io::Result<()> {
 	);
 
 	//Create Cache and get clearing routine future
-	let (cache, cache_stopper, cache_clearing_routine) = cache::make_impedency_cache().await;
+	let (cache, cache_stopper) = cache::make_impedency_cache().await;
 
 	//Create Database Connection and get cleaning routine future
-	let (conn, database_stopper, database_cleanse_routine) = database::get_database(
+	let (conn, database_stopper) = database::get_database(
 		&*env_var("DATABASE_URL")
 			.expect("Environment variable DATABASE_URL not set"),
 	).await
@@ -130,7 +130,7 @@ async fn main() -> std::io::Result<()> {
 			)
 		}
 	};
-	futures::join![sig_handler, server, database_cleanse_routine, cache_clearing_routine].1
+	futures::join![sig_handler, server].1
 }
 
 fn wait_until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = bool>> {
