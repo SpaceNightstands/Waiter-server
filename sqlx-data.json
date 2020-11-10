@@ -1,15 +1,5 @@
 {
   "db": "MySQL",
-  "035a3f3ebf7a357cc212c8d26f0217dfb440223c78f1504c5f3edcf5d1bfe74b": {
-    "query": "TRUNCATE TABLE orders",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 0
-      },
-      "nullable": []
-    }
-  },
   "189160ef4f903fb9c68755282c07f4c8be968b612e99348a8d26005d096342a9": {
     "query": "SELECT o.id,o.owner,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t WHERE o.owner=?\n\t\t ORDER BY id",
     "describe": {
@@ -44,7 +34,7 @@
           "type_info": {
             "type": "Long",
             "flags": {
-              "bits": 4137
+              "bits": 4139
             },
             "char_set": 63,
             "max_size": 10
@@ -149,12 +139,12 @@
       "nullable": []
     }
   },
-  "f498a25e85eb4f5554c5494664147443a9a9ac002e62ad49c9f643b7c9486157": {
-    "query": "INSERT INTO products(kind, name, price, max_num, ingredients) VALUES (?, ?, ?, ?, ?) RETURNING *",
+  "fe38fe1b1ab3d801a3f065f337a8e56ffdf3a712726b170e0b43d3e7bc2f7a8d": {
+    "query": "DELETE FROM orders",
     "describe": {
       "columns": [],
       "parameters": {
-        "Right": 5
+        "Right": 0
       },
       "nullable": []
     }
