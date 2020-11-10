@@ -72,13 +72,13 @@ async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) ->
 fn make_product_from_row(item: sqlx::mysql::MySqlRow) -> Product {
 	//To index into the row with get
 	use sqlx::Row;
-	Product{
-		id: item.get(0), //"id"
-		kind: item.get(1), // "kind"
-		name: item.get(2), // "name"
-		price: item.get(3), // "price"
-		max_num: item.get(4), // "max_num"
-		ingredients: item.get(5), // "ingredients"
-		image: item.get(6) // "image"
-	}
+	Product::new(
+		item.get(0), //"id"
+		item.get(1), // "kind"
+		item.get(2), // "name"
+		item.get(3), // "price"
+		item.get(4), // "max_num"
+		item.get(5), // "ingredients"
+		item.get(6) // "image"
+	)
 }

@@ -33,13 +33,13 @@ mod impls {
 		*0 is our None (in the contexts where
 		*id matters)*/
 		#[serde(default)]
-		id: u32,
-		kind: ProductKind, 
-		name: String,
-		price: u16, 
-		max_num: u8,
-		ingredients: Option<String>,
-		image: Vec<u8> 
+		pub(super) id: u32,
+		pub(super) kind: ProductKind, 
+		pub(super) name: String,
+		pub(super) price: u16, 
+		pub(super) max_num: u8,
+		pub(super) ingredients: Option<String>,
+		pub(super) image: Vec<u8> 
 	}
 
 	#[derive(Serialize, Deserialize, Getters, Debug)]
@@ -95,8 +95,23 @@ impl std::convert::Into<&'static str> for &ProductKind {
 	}
 }
 
+impl Product {
+	pub(crate) fn new(id: u32, kind: ProductKind, name: String, price: u16, max_num: u8, ingredients: Option<String>, image: Vec<u8>) -> Self{
+		Product {
+			id,
+			kind,
+			name,
+			price,
+			max_num,
+			ingredients,
+			image
+		}
+	}
+}
+
 impl Order {
 	pub(crate) fn cart_mut(&mut self) -> Pin<&mut Vec<(u32, u32)>> {
+		//TODO: make pin effective
 		Pin::new(&mut self.cart)
 	}
 }
