@@ -17,9 +17,13 @@ use futures::{
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-	//Parse .env (should make this optional)
-	dotenv::dotenv().expect(".env not found or not parsable");
+	//Parse .env
+	#[allow(unused_must_use)]
+	{
+		dotenv::dotenv();
+	}
 	//Enable Logging
+	//TODO: Improve logging
 	simple_logger::SimpleLogger::new()
     .with_level(log::LevelFilter::Debug)
 		.init()

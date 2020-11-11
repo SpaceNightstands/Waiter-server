@@ -40,6 +40,7 @@ pub(crate) struct AuthToken {
 mod datetime {
 	use super::DateTime;
 
+	#[cfg(test)]
 	pub(super) fn serialize<S: serde::Serializer>(tstamp: &DateTime, ser: S) -> Result<S::Ok, S::Error> {
 		ser.serialize_str(&*tstamp.to_rfc3339())
 	}
