@@ -1,2 +1,2 @@
-# Waiter_Server
+# Waiter-Server
 
