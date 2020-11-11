@@ -129,7 +129,7 @@ where
 
 		let claims: Result<AuthToken, jwt::Error> = if let Some(token) = header.trim().strip_prefix("Bearer "){
 			use jwt::VerifyWithKey;
-			token.verify_with_key(self.key.as_ref().into())
+			token.verify_with_key(self.key.as_ref())
 		} else {
 			return Box::pin(
 				err(
