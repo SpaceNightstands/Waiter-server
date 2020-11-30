@@ -11,7 +11,7 @@ use sqlx::{
 };
 use derive_getters::Getters;
 
-pub(super) use impls::*;
+/*pub(super) use impls::*;
 
 #[cfg(not(test))]
 mod impls {
@@ -55,33 +55,34 @@ mod impls {
 mod impls {
 	use super::*;
 
-	#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
-	#[serde(rename_all="lowercase")]
-	pub enum ProductKind {
-		Available,
-		Orderable,
-		Beverage
-	}
+}*/
 
-	#[derive(Serialize, Deserialize, Getters, sqlx::FromRow, Debug, PartialEq, Eq)]
-	pub struct Product {
-		#[serde(default)]
-		pub(crate) id: u32,
-		pub(crate) kind: ProductKind, 
-		pub(crate) name: String,
-		pub(crate) price: u16, 
-		pub(crate) max_num: u8,
-		pub(crate) ingredients: Option<String>,
-		pub(crate) image: Vec<u8> 
-	}
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all="lowercase")]
+pub enum ProductKind {
+	Available,
+	Orderable,
+	Beverage
+}
 
-	#[derive(Serialize, Deserialize, Getters, Debug, PartialEq, Eq)]
-	pub struct Order {
-		#[serde(default)]
-		pub(crate) id: u32,
-		pub(crate) owner: String,
-		pub(crate) cart: Vec<(u32, u32)>,
-	}
+#[derive(Serialize, Deserialize, Getters, sqlx::FromRow, Debug, PartialEq, Eq)]
+pub struct Product {
+	#[serde(default)]
+	pub(crate) id: u32,
+	pub(crate) kind: ProductKind, 
+	pub(crate) name: String,
+	pub(crate) price: u16, 
+	pub(crate) max_num: u8,
+	pub(crate) ingredients: Option<String>,
+	pub(crate) image: Vec<u8> 
+}
+
+#[derive(Serialize, Deserialize, Getters, Debug, PartialEq, Eq)]
+pub struct Order {
+	#[serde(default)]
+	pub(crate) id: u32,
+	pub(crate) owner: String,
+	pub(crate) cart: Vec<(u32, u32)>,
 }
 
 impl std::convert::Into<&'static str> for &ProductKind {
