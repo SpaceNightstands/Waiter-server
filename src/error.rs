@@ -31,7 +31,7 @@ pub(crate) enum Error {
 }
 
 impl Error {
-	pub(crate) fn Passthrough(status: StatusCode, reason: &'static str, message: &dyn std::error::Error) -> Error {
+	pub(crate) fn Passthrough<T: std::error::Error>(status: StatusCode, reason: &'static str, message: &T) -> Error {
 		Error::Passthrough {
 			status,
 			reason,
