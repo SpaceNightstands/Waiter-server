@@ -13,7 +13,7 @@ pub fn get_service() -> actix_web::Scope{
 
 async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
-	let owner = get_auth_token(owner)?;
+	let owner = get_auth_token(&owner)?;
 	let mut orders = Vec::<Order>::new();
 
 	let mut query = sqlx::query!(
@@ -55,7 +55,7 @@ struct PutOrder {
 
 async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
-	let owner = get_auth_token(owner)?;
+	let owner = get_auth_token(&owner)?;
 	if put_order.cart.len() <= 0 {
 		return Err(
 			Error::Static{
@@ -104,35 +104,9 @@ async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>
 	Ok(web::Json(order))
 }
 
-/*async fn delete_orders(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>, req: web::HttpRequest) -> Result<impl Responder, Error> {
-	let owner = req.extensions();
-	let owner = get_auth_token(&owner)?;
-
-	log::debug!("Deleting Order {} from order list", id);
-	let mut tx = db.get_ref()
-		.begin()
-		.await
-		.map_err(DBError::from)?;
-	let product = sqlx::query!(
-		"DELETE orders FROM orders WHERE orders.id=? AND orders.owner=?",
-		id, owner.sub()
-	).fetch_one(&mut tx)
-	 .await
-	 .map(
-		 |row| Order {
-			 id: row.get("id"),
-			 owner: row.get("owner"),
-			 cart: Vec::new(),
-		 }
-	 ).map_err(DBError::from)?;
-	tx.commit().await.map_err(DBError::from)?;
-
-	Ok(web::Json(product))
-}*/
-
 //Utils: 
 #[inline]
-fn get_auth_token<'r>(req: std::cell::Ref<'r, actix_web::dev::Extensions>) -> Result<&'r AuthToken, Error>{
+fn get_auth_token<'r>(req: &'r std::cell::Ref<'_, actix_web::dev::Extensions>) -> Result<&'r AuthToken, Error>{
 	req.get::<AuthToken>()
     .ok_or(AuthError())
 }
