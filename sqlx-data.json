@@ -129,12 +129,12 @@
       ]
     }
   },
-  "bd86df4296a25518e2df8a018edb52f452c31318a1293c813ff37125e2540155": {
-    "query": "INSERT INTO orders(owner) VALUES (?) RETURNING id, owner",
+  "d654b5af277d39f09fc3c5dec8e10b5bf6a4d9557001696338800139d848618c": {
+    "query": "INSERT INTO orders(owner, owner_name) VALUES (?, ?) RETURNING id, owner",
     "describe": {
       "columns": [],
       "parameters": {
-        "Right": 1
+        "Right": 2
       },
       "nullable": []
     }
