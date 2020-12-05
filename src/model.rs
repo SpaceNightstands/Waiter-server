@@ -97,20 +97,6 @@ impl std::convert::Into<&'static str> for &ProductKind {
 	}
 }
 
-impl Product {
-	pub(crate) fn new(id: u32, kind: ProductKind, name: String, price: u16, max_num: u8, ingredients: Option<String>, image: Vec<u8>) -> Self{
-		Product {
-			id,
-			kind,
-			name,
-			price,
-			max_num,
-			ingredients,
-			image
-		}
-	}
-}
-
 impl Order {
 	pub(crate) fn cart_mut(&mut self) -> Pin<&mut Vec<(u32, u32)>> {
 		//TODO: make pin effective

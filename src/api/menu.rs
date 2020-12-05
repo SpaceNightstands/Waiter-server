@@ -21,20 +21,33 @@ pub fn get_service<T: Into<Option<filter::SubList>>>(filter: T) -> actix_web::Sc
 	}
 }
 
-async fn get_menu(db: web::Data<MySqlPool>) -> impl Responder {
-	let products = sqlx::query_as(
+async fn get_menu(db: web::Data<MySqlPool>) -> Result<impl Responder, Error> {
+	let mut tx = db.get_ref()
+		.begin().await
+		.map_err(Error::from)?;
+	let product_count = sqlx::query!(
+		"SELECT COUNT(*) as count FROM products",
+	).fetch_one(&mut tx).await?
+		.count;
+
+	let mut products = Vec::with_capacity(product_count as usize);
+	let mut prod_stream = sqlx::query_as(
 		"SELECT * FROM products"
-	).fetch(db.get_ref())
-	 .filter_map(|item| futures::future::ready(result_ok_log(item)))
-	 .collect::<Vec<Product>>().await;
-	web::Json(products)
+	).fetch(&mut tx);
+	while let Some(prod) = prod_stream.next().await {
+		let prod: Product = prod?;
+		products.push(prod);
+	}
+	drop(prod_stream);
+
+	tx.commit().await.map_err(Error::from)?;
+	Ok(web::Json(products))
 }
 
 async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<impl Responder, Error> {
 	log::debug!("Inserting Product named \"{}\" into product list", prod.name());
 	let mut tx = db.get_ref()
-		.begin()
-		.await
+		.begin().await
 		.map_err(Error::from)?;
 	let product = sqlx::query!(
 		"INSERT INTO products(kind, name, price, max_num, ingredients, image) VALUES (?, ?, ?, ?, ?, ?) RETURNING *",

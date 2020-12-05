@@ -17,31 +17,39 @@ async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<i
 	let mut orders = Vec::<Order>::new();
 
 	let mut query = sqlx::query!(
-		"SELECT o.id,o.owner,c.item,c.quantity
+		"SELECT o.id,o.owner,o.owner_name,c.item,c.quantity
 		 FROM orders AS o INNER JOIN carts AS c
 		 ON o.id=c.order
 		 WHERE o.owner=?
 		 ORDER BY id",
 		owner.sub()
 	).fetch(db.get_ref());
+
+	//Iterate through all (id, owner, owner_name, cartItem[n].id, cartItem[n].quantity) tuples
 	while let Some(item) = query.next().await {
-		if let Some(item) = result_ok_log(item) {
-			if let Some(order) = orders.last_mut() {
-				if order.id() == &item.id {
-					order.cart_mut().push(
-						(item.item, item.quantity)
-					);
-					continue;
-				}
+		//If the read throws, return the error
+		let item = item?;
+		//If the order array has at least one item, get a mutable reference
+		if let Some(order) = orders.last_mut() {
+			/*If the last array element has the same id as the query,
+			 *add the (cartItem[n].id, cartItem[n].quantity) tuple to the cart*/
+			if order.id() == &item.id {
+				order.cart_mut().push(
+					(item.item, item.quantity)
+				);
+				continue;
 			}
-			orders.push(
-				Order {
-					id: item.id,
-					owner: item.owner,
-					cart: vec![(item.item, item.quantity)]
-				}
-			);
 		}
+		/*If the order array is empty or if the ids are different, create a
+		 *new order object*/
+		orders.push(
+			Order {
+				id: item.id,
+				owner: item.owner,
+				owner_name: item.owner_name,
+				cart: vec![(item.item, item.quantity)]
+			}
+		);
 	}
 	Ok(web::Json(orders))
 }
@@ -73,7 +81,7 @@ async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>
 		.map_err(Error::from)?;
 
 	let mut order = sqlx::query!(
-		"INSERT INTO orders(owner, owner_name) VALUES (?, ?) RETURNING id, owner",
+		"INSERT INTO orders(owner, owner_name) VALUES (?, ?) RETURNING id, owner, owner_name",
 		owner.sub(), put_order.owner_name
 	).fetch_one(&mut tx)
 		.await
@@ -82,6 +90,7 @@ async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>
 			|row| Order {
 				id: row.get(0),
 				owner: row.get(1),
+				owner_name: row.get(2),
 				cart: Vec::new()
 			}
 		)?;
