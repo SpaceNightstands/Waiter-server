@@ -13,7 +13,7 @@ pub fn get_service() -> actix_web::Scope{
 
 async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
-	let owner = get_auth_token(&owner)?;
+	let owner = get_auth_token(owner)?;
 	let mut orders = Vec::<Order>::new();
 
 	let mut query = sqlx::query!(
@@ -46,11 +46,17 @@ async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<i
 	Ok(web::Json(orders))
 }
 
-//Order is an array of (item id, quantity) tuples
-async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)>>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+#[derive(serde::Deserialize)]
+struct PutOrder {
+	owner_name: String,
+	//cart is an array of (item id, quantity) tuples
+	cart: Vec<(u32, u32)>
+}
+
+async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
-	let owner = get_auth_token(&owner)?;
-	if cart.len() <= 0 {
+	let owner = get_auth_token(owner)?;
+	if put_order.cart.len() <= 0 {
 		return Err(
 			Error::Static{
 				status: actix_web::http::StatusCode::BAD_REQUEST,
@@ -67,8 +73,8 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 		.map_err(Error::from)?;
 
 	let mut order = sqlx::query!(
-		"INSERT INTO orders(owner) VALUES (?) RETURNING id, owner",
-		owner.sub()
+		"INSERT INTO orders(owner, owner_name) VALUES (?, ?) RETURNING id, owner",
+		owner.sub(), put_order.owner_name
 	).fetch_one(&mut tx)
 		.await
 		.map_err(Error::from)
@@ -80,7 +86,7 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 			}
 		)?;
 	log::debug!("{:?}", order);
-	for (item, quantity) in cart.drain(..) {
+	for (item, quantity) in put_order.cart.drain(..) {
 		sqlx::query!(
 			"INSERT INTO carts VALUES (?, ?, ?) RETURNING item, quantity",
 			order.id(), item, quantity
@@ -126,7 +132,7 @@ async fn put_orders(db: web::Data<MySqlPool>, mut cart: web::Json<Vec<(u32, u32)
 
 //Utils: 
 #[inline]
-fn get_auth_token<'r>(req: &'r std::cell::Ref<'_, actix_web::dev::Extensions>) -> Result<&'r AuthToken, Error>{
+fn get_auth_token<'r>(req: std::cell::Ref<'r, actix_web::dev::Extensions>) -> Result<&'r AuthToken, Error>{
 	req.get::<AuthToken>()
     .ok_or(AuthError())
 }
