@@ -22,6 +22,8 @@ pub type Cache = std::sync::Arc<dashmap::DashSet<String>>;
 
 pub async fn make_impedency_cache() -> (Cache, oneshot::Sender<()>) {
 	let cache = Cache::new(dashmap::DashSet::new());
+	//Wipe the idempotency cache everyday
+	//TODO: truncate the capacity to a sensible amount
 	let (routine_stopper, recv) = oneshot::channel::<()>();
 	{
 		let cache = cache.clone();
@@ -99,12 +101,15 @@ where
 
 	fn call(&mut self, req: Self::Request) -> Self::Future {
 		let ext = req.head().extensions();
+		//Get the idempotency token from the JWT
 		let idempotency = ext.get::<AuthToken>()
 			.map(
 				|token| token.idempotency()
 			);
 		match idempotency {
 			Some(idempotency) => {
+				/*If the idempotency token has been used already, 
+				 *return an error*/
 				if self.cache.contains(idempotency) {
 					Box::pin(
 						future::err(
@@ -112,6 +117,8 @@ where
 						)
 					)
 				} else {
+					/*Otherwise, create a future that will add the token
+					 *to the cache after having responded to the request*/
 					let cache = self.cache.clone();
 					let idempotency = idempotency.clone();
 					std::mem::drop(ext);

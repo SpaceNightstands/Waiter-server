@@ -94,6 +94,7 @@ async fn main() -> std::io::Result<()> {
 
 	{
 		let server = server.clone();
+		//On non-unix platforms, use the simple ctrl+c handler
 		#[cfg(not(unix))]
 		actix_rt::spawn(
 			actix_rt::signal::ctrl_c()
@@ -104,6 +105,8 @@ async fn main() -> std::io::Result<()> {
 					}
 				)
 		);
+		/*On *nix register a listener for every terminating
+		 *signal*/
 		#[cfg(unix)]
 		{
 			use actix_rt::signal::unix::{
@@ -111,24 +114,25 @@ async fn main() -> std::io::Result<()> {
 				SignalKind
 			};
 			let mut signals = Vec::new();
-			let sig_map = [
+			const SIGNAL_LIST: [SignalKind; 4] = [
 				SignalKind::interrupt(),
 				SignalKind::hangup(),
 				SignalKind::terminate(),
 				SignalKind::quit(),
 			];
-			for kind in sig_map.iter() {
+			for kind in SIGNAL_LIST.iter() {
 				match unix::signal(*kind) {
 					Ok(stream) => signals.push(stream),
 					Err(e) => if log::log_enabled!(log::Level::Error) {
 						log::error!(
-							"Can not initialize stream handler for {:?} err: {}",
+							"Cannot initialize stream handler for {:?} err: {}",
 							kind, e
 						)
-					},
+					}
 				}
 			}
 
+			//Poll every stream and stop everything if any signal is received
 			use std::task::Poll;
 			actix_rt::spawn(
 				futures::future::poll_fn(
@@ -151,16 +155,21 @@ async fn main() -> std::io::Result<()> {
 	server.await
 }
 
-fn wait_until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = bool>> {
+fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = bool>> {
 	use sqlx::types::chrono::Local;
 	async {
-		//Use and_hms_opt instead, handle errors
+		//Get today
 		let before_waiting = Local::today();
+		//Get tomorrow and add 0:0:0 as hours, minutes and seconds respectively
 		let time_until_midnight = before_waiting.succ()
+			//TODO: Use and_hms_opt instead, handle errors
 			.and_hms(0, 0, 0)
+			//Get the duration between midnight and now
 			.signed_duration_since(Local::now())
 			.to_std()
+			//TODO: Handle error better
 			.unwrap();
+		//Tell the runtime that this future has to wait until midnight
 		actix_rt::time::delay_for(time_until_midnight).await;
 		//Return if it's actually past midnight
 		Local::today() > before_waiting

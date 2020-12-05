@@ -86,6 +86,7 @@ async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>
 	).fetch_one(&mut tx)
 		.await
 		.map_err(Error::from)
+		//Map the returning order into an object
     .map(
 			|row| Order {
 				id: row.get(0),
@@ -102,9 +103,11 @@ async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>
 		).fetch_one(&mut tx)
 		 .await
 		 .map(
-			 |row| order.cart_mut().push(
-				 (row.get(0), row.get(1))
-			 )
+				/*Map the returning cart item into a tuple
+				 *and then push it in the "cart" vector*/
+				|row| order.cart_mut().push(
+					(row.get(0), row.get(1))
+				)
 		 )
 		 .map_err(Error::from)?;
 	}

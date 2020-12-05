@@ -13,34 +13,23 @@ use actix_web::{
 	Error as axError
 };
 use sqlx::types::chrono;
-use futures::future;
+use futures::future::{self, err};
 use std::sync::Arc;
 
 pub type Key = hmac::Hmac<sha2::Sha256>;
 type DateTime = chrono::DateTime<chrono::FixedOffset>;
 
-#[cfg(test)]
 #[derive(serde::Serialize, serde::Deserialize, derive_getters::Getters, Clone)]
-pub(crate) struct AuthToken {
+pub struct AuthToken {
 	pub(crate) sub: String, //subject
 	#[serde(with = "datetime")]
 	pub(crate) exp: DateTime, //Expiration Time
 	pub(crate) idempotency: String //idempotency token
 }
 
-#[cfg(not(test))]
-#[derive(serde::Deserialize, derive_getters::Getters)]
-pub(crate) struct AuthToken {
-	sub: String, //subject
-	#[serde(with = "datetime")]
-	exp: DateTime, //Expiration Time
-	idempotency: String //idempotency token
-}
-
 mod datetime {
 	use super::DateTime;
 
-	#[cfg(test)]
 	pub(super) fn serialize<S: serde::Serializer>(tstamp: &DateTime, ser: S) -> Result<S::Ok, S::Error> {
 		ser.serialize_str(&*tstamp.to_rfc3339())
 	}
@@ -108,7 +97,7 @@ where
 
 	fn call(&mut self, mut req: Self::Request) -> Self::Future {
 		//Authorization: Bearer <token>
-		use future::err;
+		//Check that the header exists
 		let header = if let Some(header) = req.headers().get(http::header::AUTHORIZATION) {
 			match header.to_str() {
 				Ok(header) => header,
@@ -128,6 +117,7 @@ where
 			)
 		};
 
+		//Check that the value starts with "Bearer ". If so, verify the jwt that comes after
 		let claims: Result<AuthToken, jwt::Error> = if let Some(token) = header.trim().strip_prefix("Bearer "){
 			use jwt::VerifyWithKey;
 			token.verify_with_key(self.key.as_ref())
@@ -141,10 +131,12 @@ where
 			)
 		};
 
+		//Check that the jwt hasn't expired
 		match claims {
 			Ok(claims) => {
 				// Add checksum check
 				if chrono::Utc::now() < claims.exp {
+					//If everything's ok, add the AuthToken to the request extensions
 					req.head_mut().extensions_mut()
 						.insert(claims);
 					Box::pin(self.service.call(req))

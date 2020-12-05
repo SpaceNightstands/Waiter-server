@@ -72,16 +72,19 @@ where
 
 	fn call(&mut self, req: Self::Request) -> Self::Future {
 		let ext = req.head().extensions();
+		//Get the AuthToken
 		let subject = ext.get::<AuthToken>()
 			.map(
 				|token| token.sub()
 			);
 		match subject {
 			Some(sub) => {
+				//If the id is authorized, pass the call
 				if self.authorized.contains(sub) {
 					std::mem::drop(ext);
 					return Box::pin(self.service.call(req))
 				} else {
+					//Otherwise, return an error
 					Box::pin(
 						future::err(
 							filter_error("Account is not authorized").into()

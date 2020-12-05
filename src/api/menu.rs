@@ -25,11 +25,13 @@ async fn get_menu(db: web::Data<MySqlPool>) -> Result<impl Responder, Error> {
 	let mut tx = db.get_ref()
 		.begin().await
 		.map_err(Error::from)?;
+	//Get count of products in the database table
 	let product_count = sqlx::query!(
 		"SELECT COUNT(*) as count FROM products",
 	).fetch_one(&mut tx).await?
 		.count;
 
+	//Prealloc the space
 	let mut products = Vec::with_capacity(product_count as usize);
 	let mut prod_stream = sqlx::query_as(
 		"SELECT * FROM products"
@@ -38,6 +40,9 @@ async fn get_menu(db: web::Data<MySqlPool>) -> Result<impl Responder, Error> {
 		let prod: Product = prod?;
 		products.push(prod);
 	}
+	/*Drop the stream to drop the transaction reference.
+	 *If this isn't done, commit won't be able to move the 
+	 *object out of the binding*/
 	drop(prod_stream);
 
 	tx.commit().await.map_err(Error::from)?;
@@ -64,8 +69,7 @@ async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<
 async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, Error> {
 	log::debug!("Deleting Product {} from product list", id);
 	let mut tx = db.get_ref()
-		.begin()
-		.await
+		.begin().await
 		.map_err(Error::from)?;
 	let product = sqlx::query!(
 		"DELETE FROM products WHERE id = ? RETURNING *",
