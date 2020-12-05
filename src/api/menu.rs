@@ -41,8 +41,7 @@ async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<
 		prod.kind(), prod.name(),
 		prod.price(), prod.max_num(),
 		prod.ingredients(), prod.image()
-	).fetch_one(&mut tx)
-	 .await
+	).fetch_one(&mut tx).await
 	 .map(make_product_from_row)
 	 .map_err(Error::from)?;
 	tx.commit().await.map_err(Error::from)?;
@@ -58,8 +57,7 @@ async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) ->
 	let product = sqlx::query!(
 		"DELETE FROM products WHERE id = ? RETURNING *",
 		id	
-	).fetch_one(&mut tx)
-	 .await
+	).fetch_one(&mut tx).await
 	 .map(make_product_from_row)
 	 .map_err(Error::from)?;
 	tx.commit().await.map_err(Error::from)?;
@@ -73,13 +71,13 @@ fn make_product_from_row(item: sqlx::mysql::MySqlRow) -> Product {
 	//To index into the row with get
 	use sqlx::Row;
 	//TODO: use column names instead of positions
-	Product::new(
-		item.get(0), //"id"
-		item.get(1), // "kind"
-		item.get(2), // "name"
-		item.get(3), // "price"
-		item.get(4), // "max_num"
-		item.get(5), // "ingredients"
-		item.get(6) // "image"
-	)
+	Product {
+		id: item.get(0),
+		kind: item.get(1),
+		name: item.get(2),
+		price: item.get(3),
+		max_num: item.get(4),
+		ingredients: item.get(5),
+		image: item.get(6)
+	}
 }
