@@ -1,7 +1,37 @@
 {
   "db": "MySQL",
-  "189160ef4f903fb9c68755282c07f4c8be968b612e99348a8d26005d096342a9": {
-    "query": "SELECT o.id,o.owner,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t WHERE o.owner=?\n\t\t ORDER BY id",
+  "64ecd97c2748428029a8d19f6536b66a145429054fa0aa0aac8bb0a6b3820cfa": {
+    "query": "INSERT INTO carts VALUES (?, ?, ?) RETURNING item, quantity",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
+      },
+      "nullable": []
+    }
+  },
+  "7e0336ed89f9ca0c48403808df497221d9531b236863791c91045d9bf386385a": {
+    "query": "INSERT INTO orders(owner, owner_name) VALUES (?, ?) RETURNING id, owner, owner_name",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "8295b59228cd3a7aa5491c23aaa4b2f4d78a3fe40cc02d028d579cfd43b773af": {
+    "query": "ALTER TABLE orders AUTO_INCREMENT = 1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": []
+    }
+  },
+  "97ce287bd6f2623a0e1dbe12f142438fbd26b5ef356a6cc768374277c1017c1f": {
+    "query": "SELECT o.id,o.owner,o.owner_name,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t WHERE o.owner=?\n\t\t ORDER BY id",
     "describe": {
       "columns": [
         {
@@ -30,6 +60,18 @@
         },
         {
           "ordinal": 2,
+          "name": "owner_name",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 4113
+            },
+            "char_set": 224,
+            "max_size": 262140
+          }
+        },
+        {
+          "ordinal": 3,
           "name": "item",
           "type_info": {
             "type": "Long",
@@ -41,7 +83,7 @@
           }
         },
         {
-          "ordinal": 3,
+          "ordinal": 4,
           "name": "quantity",
           "type_info": {
             "type": "Long",
@@ -60,28 +102,34 @@
         false,
         false,
         false,
+        false,
         false
       ]
     }
   },
-  "64ecd97c2748428029a8d19f6536b66a145429054fa0aa0aac8bb0a6b3820cfa": {
-    "query": "INSERT INTO carts VALUES (?, ?, ?) RETURNING item, quantity",
+  "a81be4760be1d80767769a279d018616380813b2fbe0c1b6db910e119f5f3f2f": {
+    "query": "SELECT COUNT(*) as count FROM products",
     "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 3
-      },
-      "nullable": []
-    }
-  },
-  "8295b59228cd3a7aa5491c23aaa4b2f4d78a3fe40cc02d028d579cfd43b773af": {
-    "query": "ALTER TABLE orders AUTO_INCREMENT = 1",
-    "describe": {
-      "columns": [],
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "count",
+          "type_info": {
+            "type": "LongLong",
+            "flags": {
+              "bits": 129
+            },
+            "char_set": 63,
+            "max_size": 21
+          }
+        }
+      ],
       "parameters": {
         "Right": 0
       },
-      "nullable": []
+      "nullable": [
+        false
+      ]
     }
   },
   "ad09b0f774d86ba36830548e859a70f30fab91452fd43a002528851c65442af6": {
@@ -127,16 +175,6 @@
       "nullable": [
         false
       ]
-    }
-  },
-  "d654b5af277d39f09fc3c5dec8e10b5bf6a4d9557001696338800139d848618c": {
-    "query": "INSERT INTO orders(owner, owner_name) VALUES (?, ?) RETURNING id, owner",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
     }
   },
   "fe38fe1b1ab3d801a3f065f337a8e56ffdf3a712726b170e0b43d3e7bc2f7a8d": {
