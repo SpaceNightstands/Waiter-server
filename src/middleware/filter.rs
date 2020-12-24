@@ -1,22 +1,11 @@
-use actix_web::{
-	dev::{
-		self,
-		Service,
-		ServiceRequest,
-		ServiceResponse
-	},
-	http::StatusCode,
-	Error as AxError
-};
-use futures::future;
 use super::{
 	auth::AuthToken,
 	prelude::*
 };
 
-pub type SubList = std::sync::Arc<std::collections::HashSet<String>>;
+pub(crate) type SubList = Pin<SharedPointer<std::collections::HashSet<String>>>;
 
-pub struct SubjectFilter(pub SubList);
+pub(crate) struct SubjectFilter(pub SubList);
 
 impl<S, B> dev::Transform<S> for SubjectFilter
 where
@@ -40,7 +29,7 @@ where
 		future::ok(
 			SubjectFilterService{
 				service,
-				authorized: self.0.clone()
+				authorized: self.0
 			}
 		)
 	}

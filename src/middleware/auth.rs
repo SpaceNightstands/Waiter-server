@@ -1,20 +1,7 @@
 use super::prelude::*;
-use actix_web::{
-	dev::{
-		self,
-		Service,
-		ServiceRequest,
-		ServiceResponse,
-	},
-	http::{
-		self,
-		StatusCode
-	},
-	Error as axError
-};
+use actix_web::http;
 use sqlx::types::chrono;
-use futures::future::{self, err};
-use std::sync::Arc;
+use future::err;
 
 pub type Key = hmac::Hmac<sha2::Sha256>;
 type DateTime = chrono::DateTime<chrono::FixedOffset>;
@@ -41,11 +28,11 @@ mod datetime {
 	}
 }
 
-pub struct JWTAuth(pub Arc<Key>);
+pub(crate) struct JWTAuth(pub(crate) Pin<SharedPointer<Key>>);
 
 impl<S, B> dev::Transform<S> for JWTAuth
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = axError>,
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static,
 {
@@ -65,7 +52,7 @@ where
 		future::ok(
 			JWTAuthService{
 				service,
-				key: self.0.clone(),
+				key: self.0,
 			}
 		)
 	}
@@ -73,12 +60,12 @@ where
 
 pub struct JWTAuthService<S: Service>{
 	pub(super) service: S,
-	pub(super) key: Arc<Key>,
+	pub(super) key: Pin<SharedPointer<Key>>,
 }
 
 impl<S, B> Service for JWTAuthService<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = axError>,
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static
 {
@@ -120,7 +107,7 @@ where
 		//Check that the value starts with "Bearer ". If so, verify the jwt that comes after
 		let claims: Result<AuthToken, jwt::Error> = if let Some(token) = header.trim().strip_prefix("Bearer "){
 			use jwt::VerifyWithKey;
-			token.verify_with_key(self.key.as_ref())
+			token.verify_with_key(self.key.as_ref().get_ref())
 		} else {
 			return Box::pin(
 				err(

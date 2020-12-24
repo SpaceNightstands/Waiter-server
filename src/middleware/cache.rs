@@ -1,17 +1,6 @@
-use actix_web::{
-	dev::{
-		self,
-		Service,
-		ServiceRequest,
-		ServiceResponse
-	},
-	http::StatusCode,
-	Error as AxError
-};
-use futures::future;
 use super::{
 	auth::AuthToken,
-	prelude::Error
+	prelude::*
 };
 use futures::{
 	future::FutureExt,
@@ -34,7 +23,7 @@ pub async fn make_impedency_cache() -> (Cache, oneshot::Sender<()>) {
 				loop {
 					futures::select_biased! {
 						_ = recv => break,
-						is_past_midnight = crate::wait_until_midnight() => if is_past_midnight {
+						is_past_midnight = crate::until_midnight() => if is_past_midnight {
 							cache.clear();
 						}
 					}

@@ -3,6 +3,7 @@ mod api;
 mod middleware;
 mod error;
 mod database;
+mod pointer;
 
 #[cfg(test)]
 mod test;
@@ -14,6 +15,7 @@ use futures::{
 	future::FutureExt,
 	channel::oneshot::Sender
 };
+use pointer::SharedPointer;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -22,40 +24,13 @@ async fn main() -> std::io::Result<()> {
 	{
 		dotenv::dotenv();
 	}
+
 	//Enable Logging
 	//TODO: Improve logging
 	simple_logger::SimpleLogger::new()
     .with_level(log::LevelFilter::Debug)
 		.init()
 		.expect("Couldn't set logger");
-
-	//For host guard
-	/*let host = env_var("HOST")
-    .expect("Environment variable HOST not set");*/
-
-	//Create JWT Key
-	use hmac::NewMac;
-	//TODO: Test NonNull pointer
-	let key = std::sync::Arc::new(
-		auth::Key::new_varkey(
-			env_var("JWT_SECRET")
-				.expect("Environment variable DATABASE_URL not set")
-				.as_bytes()
-		).unwrap()
-	);
-
-	//Admins are the only google accounts able to edit the menu
-	let admins = env_var("ADMINS")
-    .map(
-			|string| filter::SubList::new(
-				string.split(',')
-					.map(String::from)
-					.collect::<std::collections::HashSet<String>>()
-			)
-		).ok();
-
-	//Create Cache and get clearing routine future
-	let (cache, cache_stopper) = cache::make_impedency_cache().await;
 
 	//Create Database Connection and get cleaning routine future
 	let (conn, database_stopper) = database::get_database(
@@ -64,26 +39,56 @@ async fn main() -> std::io::Result<()> {
 	).await
 		.expect("Couldn't connect to database");
 
+	//Create Cache and get clearing routine future
+	let (cache, cache_stopper) = cache::make_impedency_cache().await;
+
+	//For host guard
+	/*let host = env_var("HOST")
+    .expect("Environment variable HOST not set");*/
+
+	//Create JWT Key
+	use hmac::NewMac;
+	let key = auth::Key::new_varkey(
+		env_var("JWT_SECRET")
+			.expect("Environment variable DATABASE_URL not set")
+			.as_bytes()
+	).unwrap();
+
+	//Admins are the only google accounts able to edit the menu
+	let admins = env_var("ADMINS")
+    .map(
+			|string| string.split(',')
+				.map(String::from)
+				.collect::<std::collections::HashSet<String>>()
+		).ok();
 
 	use actix_web::{
 		HttpServer,
 		App,
 		middleware
 	};
-	let server = HttpServer::new(move || {
-		let key = key.clone();
-		let cache = cache.clone();
-		let admins = admins.clone();
-		//TODO: Add host guard
-		//Middleware is executed in reverse registration order
-		App::new()
-			.data(conn.clone())
-			.wrap(cache::IdempotencyCache(cache))
-			.wrap(auth::JWTAuth(key))
-			.wrap(middleware::Logger::default())
-			.service(menu::get_service(admins))
-			.service(order::get_service())
-	}).bind(
+	let server = {
+		let (key_ref, admins_ref) = unsafe {
+			(
+				SharedPointer::new(&key),
+				admins.as_ref().map(
+					|admins| SharedPointer::new(admins)
+				)
+			)
+		};
+		HttpServer::new(move || {
+			let cache = cache.clone();
+			//Middleware is executed in reverse registration order
+			App::new()
+				.data(conn.clone())
+				.wrap(cache::IdempotencyCache(cache))
+				.wrap(auth::JWTAuth(key_ref))
+				.wrap(actix_cors::Cors::permissive())
+				.wrap(middleware::Logger::default())
+				.service(menu::get_service(admins_ref))
+				.service(order::get_service())
+		})
+	}.bind(
 		format!(
 			"{}:{}",
 			env_var("SERVER_ADDRESS").unwrap_or("0.0.0.0".to_string()),
@@ -114,13 +119,13 @@ async fn main() -> std::io::Result<()> {
 				SignalKind
 			};
 			let mut signals = Vec::new();
-			const SIGNAL_LIST: [SignalKind; 4] = [
+			let signal_list: [SignalKind; 4] = [
 				SignalKind::interrupt(),
 				SignalKind::hangup(),
 				SignalKind::terminate(),
 				SignalKind::quit(),
 			];
-			for kind in SIGNAL_LIST.iter() {
+			for kind in signal_list.iter() {
 				match unix::signal(*kind) {
 					Ok(stream) => signals.push(stream),
 					Err(e) => if log::log_enabled!(log::Level::Error) {
@@ -152,7 +157,14 @@ async fn main() -> std::io::Result<()> {
 			)
 		}
 	};
-	server.await
+
+	let return_value = server.await;
+
+	println!("Cleanup");
+	drop(key);
+	drop(admins);
+
+	return_value
 }
 
 fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = bool>> {

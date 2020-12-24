@@ -4,8 +4,7 @@ use super::prelude::{
 };
 use crate::middleware::filter;
 
-pub fn get_service<T: Into<Option<filter::SubList>>>(filter: T) -> actix_web::Scope{
-	let filter = filter.into();
+pub(crate) fn get_service(filter: Option<filter::SubList>) -> actix_web::Scope{
 	let scope = web::scope("/menu")
     .route("", web::get().to(get_menu));
 	if let Some(filter) = filter {
