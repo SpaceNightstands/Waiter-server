@@ -4,7 +4,7 @@ use super::prelude::{
 };
 use sqlx::Row;
 
-pub fn get_service() -> actix_web::Scope{
+pub(crate) fn get_service() -> actix_web::Scope{
 	web::scope("/order")
     .route("", web::get().to(get_orders))
     .route("", web::put().to(put_orders))

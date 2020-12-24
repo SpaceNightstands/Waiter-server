@@ -102,6 +102,7 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 	let expected = Order {
 		id: 2,
 		owner: "test".to_string(),
+		owner_name: "test".to_string(),
 		cart: vec![(prod, 3)]
 	};
 	//Put

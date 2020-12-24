@@ -43,7 +43,7 @@ pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>)
 					//Wipe the orders table everyday
 					futures::select_biased! {
 						_ = recv => break,
-						is_past_midnight = crate::wait_until_midnight() => if is_past_midnight {
+						is_past_midnight = crate::until_midnight() => if is_past_midnight {
 							log::debug!("Truncating Database");
 							delete_data(&conn).await.unwrap();
 						}
