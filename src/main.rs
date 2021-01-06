@@ -13,6 +13,7 @@ use api::*;
 use middleware::*;
 use futures::{
 	future::FutureExt,
+	//TODO: Use single atomic boolean
 	channel::oneshot::Sender
 };
 use pointer::SharedPointer;
