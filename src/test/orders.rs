@@ -12,17 +12,20 @@ use hmac::NewMac;
 use jwt::SignWithKey;
 
 pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
-	let key = std::sync::Arc::new(
-		auth::Key::new_varkey(
-			dotenv_codegen::dotenv!("JWT_SECRET").as_bytes()
-		).unwrap()
-	);
+	let key = auth::Key::new_varkey(
+		dotenv_codegen::dotenv!("JWT_SECRET").as_bytes()
+	).unwrap();
 
 	let mut service = test::init_service(
 		actix_web::App::new()
 			.data(database.clone())
-			.wrap(auth::JWTAuth(key.clone()))
-			.service(crate::api::order::get_service())
+			.wrap(
+				auth::JWTAuth(
+					unsafe {
+						crate::pointer::SharedPointer::new(&key)
+					}
+				)
+			).service(crate::api::order::get_service())
 			.service(crate::api::menu::get_service(None))
 	).await;
 
@@ -37,7 +40,7 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 				.with_timezone(&chrono::FixedOffset::east(0)),
 			idempotency: "test".to_string(),
 		};
-		auth.sign_with_key(&*key).unwrap()
+		auth.sign_with_key(&key).unwrap()
 	};
 
 	let prod = {

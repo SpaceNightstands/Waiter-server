@@ -1,7 +1,8 @@
 use crate::{
 	model::*,
 	middleware::*,
-	api::*
+	api::*,
+	pointer::SharedPointer
 };
 use actix_web::{
 	test,
@@ -13,24 +14,30 @@ use jwt::SignWithKey;
 use std::sync::Arc;
 
 pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
-	let key = Arc::new(
-		auth::Key::new_varkey(
-			dotenv_codegen::dotenv!("JWT_SECRET").as_bytes()
-		).unwrap()
-	);
+	let key = auth::Key::new_varkey(
+		dotenv_codegen::dotenv!("JWT_SECRET").as_bytes()
+	).unwrap();
 	let cache = Arc::new(dashmap::DashSet::new());
 	let mut filter = std::collections::HashSet::with_capacity(1);
 	filter.insert("admin".to_string());
 
-	let mut service = test::init_service(
-		actix_web::App::new()
-			.data(database.clone())
-			.wrap(cache::IdempotencyCache(cache))
-			.wrap(auth::JWTAuth(key.clone()))
-			.wrap(actix_web::middleware::Logger::default())
-			.service(menu::get_service(Arc::new(filter)))
-			.service(order::get_service())
-	).await;
+	let mut service = {
+		let (key_ref, filter_ref) = unsafe {
+			(
+				SharedPointer::new(&key),
+				SharedPointer::new(&filter)
+			)
+		};
+		test::init_service(
+			actix_web::App::new()
+				.data(database.clone())
+				.wrap(cache::IdempotencyCache(cache))
+				.wrap(auth::JWTAuth(key_ref))
+				.wrap(actix_web::middleware::Logger::default())
+				.service(menu::get_service(Some(filter_ref)))
+				.service(order::get_service())
+		)
+	}.await;
 
 	//Common JWT exp attribute
 	let common_expiry = chrono::Utc::today()
@@ -39,14 +46,16 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 		.and_hms(0, 0, 0)
 		.with_timezone(&chrono::FixedOffset::east(0));
 
-	//Testing idempotency token cache
+	/*Testing idempotency token cache by sending
+	 *two requests with the same Authentication Token*/
 	{
 		let auth = auth::AuthToken {
 			sub: "test".to_string(),
 			exp: common_expiry.clone(),
 			idempotency: "test0".to_string()
-		}.sign_with_key(&*key).unwrap();
+		}.sign_with_key(&key).unwrap();
 		let auth = format!("Bearer {}", auth);
+
 		let req = test::TestRequest::get()
 			.uri("/order")
 			.header(
@@ -67,18 +76,21 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 		let resp = service.call(req).await
 			.err()
 			.unwrap();
+		//Unwrap panics if the response is not an error
 		resp.as_error::<crate::error::Error>()
 			.unwrap();
 		//TODO: maybe add an assertion?
 	}
 
-	//Testing subject authentication
+	/*Testing subject authentication by sending
+	 *two requests and seeing if the server responds
+	 *only with the items inserted previously by the same sub(ject)*/
 	{
 		let auth = auth::AuthToken {
 			sub: "admin".to_string(),
 			exp: common_expiry.clone(),
 			idempotency: "test1".to_string()
-		}.sign_with_key(&*key).unwrap();
+		}.sign_with_key(&key).unwrap();
 		let req = test::TestRequest::get()
 			.uri("/order")
 			.header(
@@ -94,7 +106,7 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 			sub: "test".to_string(),
 			exp: common_expiry.clone(),
 			idempotency: "test2".to_string()
-		}.sign_with_key(&*key).unwrap();
+		}.sign_with_key(&key).unwrap();
 		let req = test::TestRequest::get()
 			.uri("/order")
 			.header(
@@ -107,7 +119,10 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 		assert_eq!(resp.len(), 1);
 	}
 
-	//Testing subject filter
+	/*Testing subject filter by sending a request
+	 *to one of the protected endpoints with an 
+	 *unauthorized subject value first and with
+	 *an authorized one afterwards*/
 	{
 		let prod = Product {
 			id: 3,
@@ -123,7 +138,7 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 			sub: "test".to_string(),
 			exp: common_expiry.clone(),
 			idempotency: "test3".to_string()
-		}.sign_with_key(&*key).unwrap();
+		}.sign_with_key(&key).unwrap();
 		let req = test::TestRequest::put()
 			.uri("/menu")
 			.header(
@@ -140,7 +155,7 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 			sub: "admin".to_string(),
 			exp: common_expiry.clone(),
 			idempotency: "test4".to_string()
-		}.sign_with_key(&*key).unwrap();
+		}.sign_with_key(&key).unwrap();
 		let req = test::TestRequest::put()
 			.uri("/menu")
 			.header(
