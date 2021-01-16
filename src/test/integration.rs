@@ -100,6 +100,9 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 		let resp: Vec<Order> = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
+		/*What has been added by subject "test" should not be
+		 *visible to admin, therefore the length of this array should
+		 *be 0 to indicate the lack of orders made by "admin"*/
 		assert_eq!(resp.len(), 0);
 
 		let auth = auth::AuthToken {
@@ -147,6 +150,7 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 			).set_json(&prod)
 			.to_request();
 		let resp = service.call(req).await
+			//Expecting an error here, "test" isn't authorized
 			.err()
 			.unwrap();
 		println!("{:?}", resp);

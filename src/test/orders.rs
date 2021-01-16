@@ -1,6 +1,7 @@
 use crate::{
 	model::*,
-	middleware::auth
+	middleware::auth,
+	api::order::PutOrder
 };
 use actix_web::{
 	test,
@@ -29,20 +30,21 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 			.service(crate::api::menu::get_service(None))
 	).await;
 
-	//JSON Auth Token
+	//Common JSON Auth Token
 	let auth: String = {
 		let auth = auth::AuthToken {
-			sub: "test".to_string(),
+			sub: String::from("test"),
 			exp: chrono::Utc::today()
 				.succ()
 				.succ()
 				.and_hms(0, 0, 0)
 				.with_timezone(&chrono::FixedOffset::east(0)),
-			idempotency: "test".to_string(),
+			idempotency: String::from("test")
 		};
 		auth.sign_with_key(&key).unwrap()
 	};
 
+	//Common Product
 	let prod = {
 		let req = test::TestRequest::put()
 			.uri("/menu")
@@ -66,7 +68,7 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 		*resp.id()
 	};
 
-	//Wrong Put's
+	//Wrong PUT's
 	{
 		let req = test::TestRequest::put()
 			.uri("/order")
@@ -74,7 +76,10 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 				http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
 			).set_json(
-				&[(prod, 4)] //4 is over max_num for the prod product
+				&PutOrder{
+					owner_name: String::from("Test"),
+					cart: vec![(prod, 4)] //4 is over max_num for the prod product
+				}
 			).to_request();
 		let resp = service.call(req).await.unwrap();
 		assert_eq!(
@@ -90,8 +95,11 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 			.header(
 				http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
-			).set_json::<[(u32, u32); 0]>(
-				&[]
+			).set_json(
+				&PutOrder{
+					owner_name: String::from("Test"),
+					cart: Vec::new() //Empty carts aren't accepted
+				}
 			).to_request();
 		let resp = service.call(req).await.unwrap();
 		assert_eq!(
@@ -102,13 +110,15 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 		);
 	}
 
+	//Expected return from both the PUT and the GET
 	let expected = Order {
 		id: 2,
-		owner: "test".to_string(),
-		owner_name: "test".to_string(),
+		owner: String::from("test"),
+		owner_name: String::from("Test"),
 		cart: vec![(prod, 3)]
 	};
-	//Put
+
+	//Correct PUT
 	{
 		let req = test::TestRequest::put()
 			.uri("/order")
@@ -116,18 +126,17 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 				http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
 			).set_json(
-				&[(prod, 3)]
+				&PutOrder{
+					owner_name: String::from("Test"),
+					cart: vec![(prod, 3)]
+				}
 			).to_request();
 		let resp: Order = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(
-			resp, expected,
-			"Sample: {:?}\nResponse: {:?}",
-			expected, resp
-		);
+		assert_eq!(resp, expected);
 	}
-	//Get
+	//GET
 	{
 		let req = test::TestRequest::get()
 			.uri("/order")
@@ -138,6 +147,7 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 		let resp: Vec<Order> = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(resp[0], expected, "Expected: {:?}\n\nResponse: {:?}", expected, resp);
+		//We expect what we have just PUT
+		assert_eq!(resp[0], expected);
 	}
 }

@@ -54,11 +54,11 @@ async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<i
 	Ok(web::Json(orders))
 }
 
-#[derive(serde::Deserialize)]
-struct PutOrder {
-	owner_name: String,
+#[derive(serde::Deserialize, serde::Serialize)]
+pub(crate) struct PutOrder {
+	pub(crate) owner_name: String,
 	//cart is an array of (item id, quantity) tuples
-	cart: Vec<(u32, u32)>
+	pub(crate) cart: Vec<(u32, u32)>
 }
 
 async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>, req: web::HttpRequest) -> Result<impl Responder, Error> {
