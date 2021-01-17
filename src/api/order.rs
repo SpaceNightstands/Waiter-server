@@ -4,10 +4,16 @@ use super::prelude::{
 };
 use sqlx::Row;
 
-pub(crate) fn get_service() -> actix_web::Scope{
-	web::scope("/order")
+pub(crate) fn get_service(filter: Option<filter::SubList>) -> actix_web::Scope{
+	let scope = web::scope("/order")
     .route("", web::get().to(get_orders))
-    .route("", web::put().to(put_orders))
+    .route("", web::put().to(put_orders));
+	let all_orders_service = web::resource("/all").route(web::get().to(get_all_orders));
+	if let Some(filter) = filter {
+		scope.service(all_orders_service.wrap(filter::SubjectFilter(filter)))
+	} else {
+		scope.service(all_orders_service)
+	}
 	//.route("/{id}", web::delete().to(delete_orders))
 }
 
@@ -114,6 +120,45 @@ async fn put_orders(db: web::Data<MySqlPool>, mut put_order: web::Json<PutOrder>
 
 	tx.commit().await.map_err(Error::from)?;
 	Ok(web::Json(order))
+}
+
+async fn get_all_orders(db: web::Data<MySqlPool>) -> Result<impl Responder, Error> {
+	let mut orders = Vec::<Order>::new();
+
+	let mut query = sqlx::query!(
+		"SELECT o.id,o.owner,o.owner_name,c.item,c.quantity
+		 FROM orders AS o INNER JOIN carts AS c
+		 ON o.id=c.order
+		 ORDER BY id",
+	).fetch(db.get_ref());
+
+	//Iterate through all (id, owner, owner_name, cartItem[n].id, cartItem[n].quantity) tuples
+	while let Some(item) = query.next().await {
+		//If the read throws, return the error
+		let item = item?;
+		//If the order array has at least one item, get a mutable reference
+		if let Some(order) = orders.last_mut() {
+			/*If the last array element has the same id as the query,
+			 *add the (cartItem[n].id, cartItem[n].quantity) tuple to the cart*/
+			if order.id() == &item.id {
+				order.cart_mut().push(
+					(item.item, item.quantity)
+				);
+				continue;
+			}
+		}
+		/*If the order array is empty or if the ids are different, create a
+		 *new order object*/
+		orders.push(
+			Order {
+				id: item.id,
+				owner: item.owner,
+				owner_name: item.owner_name,
+				cart: vec![(item.item, item.quantity)]
+			}
+		);
+	}
+	Ok(web::Json(orders))
 }
 
 //Utils: 

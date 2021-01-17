@@ -177,6 +177,83 @@
       ]
     }
   },
+  "fa39291cc256f17cc558e12f96202b4e5c2d5e7c47b935848d88bbd703faae0d": {
+    "query": "SELECT o.id,o.owner,o.owner_name,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t ORDER BY id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 547
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        },
+        {
+          "ordinal": 1,
+          "name": "owner",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 4121
+            },
+            "char_set": 224,
+            "max_size": 1020
+          }
+        },
+        {
+          "ordinal": 2,
+          "name": "owner_name",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 4113
+            },
+            "char_set": 224,
+            "max_size": 262140
+          }
+        },
+        {
+          "ordinal": 3,
+          "name": "item",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 4139
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        },
+        {
+          "ordinal": 4,
+          "name": "quantity",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 4129
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "fe38fe1b1ab3d801a3f065f337a8e56ffdf3a712726b170e0b43d3e7bc2f7a8d": {
     "query": "DELETE FROM orders",
     "describe": {

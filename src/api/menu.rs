@@ -2,21 +2,20 @@ use super::prelude::{
 	*,
 	model::Product
 };
-use crate::middleware::filter;
 
 pub(crate) fn get_service(filter: Option<filter::SubList>) -> actix_web::Scope{
 	let scope = web::scope("/menu")
     .route("", web::get().to(get_menu));
+	let protected_routes = web::scope("")
+		.route("", web::put().to(put_menu))
+		.route("/{id}", web::delete().to(delete_menu));
 	if let Some(filter) = filter {
     scope.service(
-			web::scope("")
+			protected_routes
 				.wrap(filter::SubjectFilter(filter))
-				.route("", web::put().to(put_menu))
-				.route("/{id}", web::delete().to(delete_menu))
 		)
 	} else {
-		scope.route("", web::put().to(put_menu))
-			.route("/{id}", web::delete().to(delete_menu))
+		scope.service(protected_routes)
 	}
 }
 

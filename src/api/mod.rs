@@ -8,4 +8,5 @@ mod prelude {
 	pub(super) use sqlx::MySqlPool;
 	pub(super) use futures::stream::StreamExt;
 	pub(super) use crate::auth::AuthToken;
+	pub(super) use crate::middleware::filter;
 }

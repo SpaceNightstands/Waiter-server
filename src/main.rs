@@ -20,7 +20,7 @@ use pointer::SharedPointer;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-	//Parse .env
+	//Parse .env if possible
 	#[allow(unused_must_use)]
 	{
 		dotenv::dotenv();
@@ -87,7 +87,7 @@ async fn main() -> std::io::Result<()> {
 				.wrap(actix_cors::Cors::permissive())
 				.wrap(middleware::Logger::default())
 				.service(menu::get_service(admins_ref))
-				.service(order::get_service())
+				.service(order::get_service(admins_ref))
 		})
 	}.bind(
 		format!(
