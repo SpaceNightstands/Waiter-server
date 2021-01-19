@@ -1,5 +1,6 @@
 use std::pin::Pin;
 use std::marker::PhantomPinned;
+use std::fmt::Debug;
 
 pub(crate) struct SharedPointer<T> {
 	pointer: *const T,
@@ -37,6 +38,14 @@ impl<T> std::clone::Clone for SharedPointer<T> {
 impl<T> std::marker::Copy for SharedPointer<T> {}
 
 unsafe impl<T> std::marker::Send for SharedPointer<T> {}
+
+impl<T: Debug> Debug for SharedPointer<T> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.write_str("SharedPointer(")?;
+		(&**self).fmt(f)?;
+		f.write_str(")")
+	}
+}
 
 #[test]
 fn shared_pointer_test() {
