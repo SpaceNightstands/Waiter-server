@@ -99,6 +99,8 @@ where
 			Some(idempotency) => {
 				/*If the idempotency token has been used already, 
 				 *return an error*/
+				log::debug!("Idemp Token: {:?}", idempotency);
+				log::debug!("Is token in cache?: {:?}", self.cache.contains(idempotency));
 				if self.cache.contains(idempotency) {
 					Box::pin(
 						future::err(
