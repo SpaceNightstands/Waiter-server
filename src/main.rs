@@ -34,6 +34,7 @@ async fn main() -> std::io::Result<()> {
 		.expect("Couldn't set logger");
 
 	//Create Database Connection and get cleaning routine future
+	log::debug!("Connecting to Database...");
 	let (conn, database_stopper) = database::get_database(
 		&*env_var("DATABASE_URL")
 			.expect("Environment variable DATABASE_URL not set"),
