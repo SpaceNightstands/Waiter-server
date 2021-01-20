@@ -89,6 +89,10 @@ where
 	}
 
 	fn call(&mut self, req: Self::Request) -> Self::Future {
+		if req.method().is_safe() || !req.method().is_idempotent() {
+			return Box::pin(self.service.call(req))
+		}
+
 		let ext = req.head().extensions();
 		//Get the idempotency token from the JWT
 		let idempotency = ext.get::<AuthToken>()
