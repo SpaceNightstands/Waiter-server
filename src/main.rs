@@ -4,6 +4,7 @@ mod middleware;
 mod error;
 mod database;
 mod pointer;
+mod signals;
 
 #[cfg(test)]
 mod test;
@@ -11,11 +12,7 @@ mod test;
 use std::env::var as env_var;
 use api::*;
 use middleware::*;
-use futures::{
-	future::FutureExt,
-	//TODO: Use single atomic boolean
-	channel::oneshot::Sender
-};
+use futures::future::FutureExt;
 use pointer::SharedPointer;
 
 #[actix_web::main]
@@ -99,66 +96,7 @@ async fn main() -> std::io::Result<()> {
 	)?.disable_signals()
 		.run();
 
-	{
-		let server = server.clone();
-		//On non-unix platforms, use the simple ctrl+c handler
-		#[cfg(not(unix))]
-		actix_rt::spawn(
-			actix_rt::signal::ctrl_c()
-				.then(
-					|_| async move {
-						log::debug!("Received Ctrl-C");
-						stopper(server, database_stopper, cache_stopper).await
-					}
-				)
-		);
-		/*On *nix register a listener for every terminating
-		 *signal*/
-		#[cfg(unix)]
-		{
-			use actix_rt::signal::unix::{
-				self,
-				SignalKind
-			};
-			let mut signals = Vec::new();
-			let signal_list: [SignalKind; 4] = [
-				SignalKind::interrupt(),
-				SignalKind::hangup(),
-				SignalKind::terminate(),
-				SignalKind::quit(),
-			];
-			for kind in signal_list.iter() {
-				match unix::signal(*kind) {
-					Ok(stream) => signals.push(stream),
-					Err(e) => if log::log_enabled!(log::Level::Error) {
-						log::error!(
-							"Cannot initialize stream handler for {:?} err: {}",
-							kind, e
-						)
-					}
-				}
-			}
-
-			//Poll every stream and stop everything if any signal is received
-			use std::task::Poll;
-			actix_rt::spawn(
-				futures::future::poll_fn(
-					move |ctx|{
-						for sig in signals.iter_mut() {
-							if let Poll::Ready(Some(())) = sig.poll_recv(ctx) {
-								return Poll::Ready(())
-							}
-						}
-						Poll::Pending
-					}
-				).then(
-					|_| async move {
-						stopper(server, database_stopper, cache_stopper).await
-					}
-				)
-			)
-		}
-	};
+	signals::handle_kill_signals(server.clone(), database_stopper, cache_stopper);
 
 	let return_value = server.await;
 
@@ -190,9 +128,3 @@ fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = b
 	}.fuse()
 }
 
-#[inline]
-async fn stopper(server: actix_web::dev::Server, database: Sender<()>, cache: Sender<()>) {
-	server.stop(true).await;
-	database.send(()).unwrap();
-	cache.send(()).unwrap();
-}
