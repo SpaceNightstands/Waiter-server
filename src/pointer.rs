@@ -48,16 +48,22 @@ impl<T: Debug> Debug for SharedPointer<T> {
 }
 
 #[test]
-fn shared_pointer_test() {
-	let owned = String::from("Test");
+fn shared_pointer_single_threaded_test() {
+	let owned = String::from("test");
 	let shared = unsafe{
 		SharedPointer::new(&owned)
 	};
 	assert_eq!(&*shared, "Test");
+}
 
-	let shared_copy = shared;
+#[test]
+fn shared_pointer_multithreaded_test() {
+	let owned = String::from("Test");
+	let shared = unsafe{
+		SharedPointer::new(&owned)
+	};
 	let is_equal = std::thread::spawn(move || {
-		&*shared_copy == "Test"
+		&*shared == "Test"
 	}).join().unwrap();
 	assert!(is_equal);
 }
