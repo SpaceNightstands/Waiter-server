@@ -11,52 +11,6 @@ use sqlx::{
 };
 use derive_getters::Getters;
 
-/*pub(super) use impls::*;
-
-#[cfg(not(test))]
-mod impls {
-	use super::*;
-
-	// sqlx::Type doesn't work that well with the ENUM SQL Type
-	#[derive(Serialize, Deserialize, Debug)]
-	#[serde(rename_all="lowercase")]
-	pub enum ProductKind {
-		Available,
-		Orderable,
-		Beverage
-	}
-
-	#[derive(Serialize, Deserialize, Getters, sqlx::FromRow, Debug)]
-	pub struct Product {
-		/*0 is the default for all numbers
-		*since AUTO_INCREMENT starts from 1
-		*0 is our None (in the contexts where
-		*id matters)*/
-		#[serde(default)]
-		pub(super) id: u32,
-		pub(super) kind: ProductKind, 
-		pub(super) name: String,
-		pub(super) price: u16, 
-		pub(super) max_num: u8,
-		pub(super) ingredients: Option<String>,
-		pub(super) image: Vec<u8> 
-	}
-
-	#[derive(Serialize, Deserialize, Getters, Debug)]
-	pub struct Order {
-		#[serde(default)]
-		pub(crate) id: u32,
-		pub(crate) owner: String,
-		pub(crate) cart: Vec<(u32, u32)>,
-	}
-}
-
-#[cfg(test)]
-mod impls {
-	use super::*;
-
-}*/
-
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all="lowercase")]
 pub enum ProductKind {
@@ -74,7 +28,43 @@ pub struct Product {
 	pub(crate) price: u16, 
 	pub(crate) max_num: u8,
 	pub(crate) ingredients: Option<String>,
+	#[serde(with = "image_from_base64")]
 	pub(crate) image: Vec<u8> 
+}
+
+mod image_from_base64 {
+	use serde::{
+		Serializer,
+		Deserializer
+	};
+	use base64_stream::{
+		FromBase64Reader as Decoder,
+		ToBase64Reader as Encoder
+	};
+	use std::io::Read;
+
+	pub(super) fn serialize<S>(image: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+	where S: Serializer {
+		use serde::ser::Error;
+
+		let mut encoded_image = String::new();
+		Encoder::new(&**image) // &[u8] implements Read
+			.read_to_string(&mut encoded_image)
+			.map_err(S::Error::custom)?;
+		serializer.serialize_str(&*encoded_image)
+	}
+
+	pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+	where D: Deserializer<'de> {
+		use serde::de::Error;
+
+		let base64: &'de str = serde::Deserialize::deserialize(deserializer)?;
+		let mut image = Vec::with_capacity(base64.as_bytes().len());
+		Decoder::new(base64.as_bytes())
+			.read_to_end(&mut image)
+			.map_err(D::Error::custom)?;
+		Ok(image)
+	}
 }
 
 #[derive(Serialize, Deserialize, Getters, Debug, PartialEq, Eq)]

@@ -21,6 +21,7 @@ dashmap = "~3.11.10"
 serde = "*"
 log = "*"
 derive-getters = "^0.2.0"
+base64-stream = "~1.2.5"
 
 [dependencies.sqlx]
 version="^0.4.1"
