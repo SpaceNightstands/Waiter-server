@@ -47,10 +47,12 @@ mod image_from_base64 {
 	where S: Serializer {
 		use serde::ser::Error;
 
-		let mut encoded_image = String::new();
+		//This capacity is not enough, but will avoid allocations for much of the conversion.
+		let mut encoded_image = String::with_capacity(image.len());
 		Encoder::new(&**image) // &[u8] implements Read
 			.read_to_string(&mut encoded_image)
 			.map_err(S::Error::custom)?;
+
 		serializer.serialize_str(&*encoded_image)
 	}
 
@@ -63,6 +65,7 @@ mod image_from_base64 {
 		Decoder::new(base64.as_bytes())
 			.read_to_end(&mut image)
 			.map_err(D::Error::custom)?;
+		image.shrink_to_fit();
 		Ok(image)
 	}
 }
