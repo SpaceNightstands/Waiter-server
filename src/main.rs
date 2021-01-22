@@ -79,7 +79,17 @@ async fn main() -> std::io::Result<()> {
 			let cache = cache.clone();
 			//Middleware is executed in reverse registration order
 			App::new()
-				.data(conn.clone())
+				.app_data(
+					actix_web::web::JsonConfig::default()
+						.limit(2621440) //2.5 MiB
+						.error_handler(
+							|err, _| error::Error::passthrough(
+								actix_web::http::StatusCode::BAD_REQUEST,
+								"JsonExtractor",
+								&err
+							).into()
+						)
+				).data(conn.clone())
 				.wrap(cache::IdempotencyCache(cache))
 				.wrap(auth::JWTAuth(key_ref))
 				.wrap(actix_cors::Cors::permissive())
