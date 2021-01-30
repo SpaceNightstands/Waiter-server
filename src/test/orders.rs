@@ -26,7 +26,7 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 						crate::pointer::SharedPointer::new(&key)
 					}
 				)
-			).service(crate::api::order::get_service())
+			).service(crate::api::order::get_service(None))
 			.service(crate::api::menu::get_service(None))
 	).await;
 

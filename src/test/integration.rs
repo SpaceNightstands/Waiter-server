@@ -35,7 +35,7 @@ pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
 				.wrap(auth::JWTAuth(key_ref))
 				.wrap(actix_web::middleware::Logger::default())
 				.service(menu::get_service(Some(filter_ref)))
-				.service(order::get_service())
+				.service(order::get_service(Some(filter_ref)))
 		)
 	}.await;
 

@@ -2,7 +2,6 @@ use super::prelude::{
 	*,
 	model::Order
 };
-use sqlx::Row;
 
 pub(crate) fn get_service(filter: Option<filter::SubList>) -> actix_web::Scope{
 	let scope = web::scope("/order")
