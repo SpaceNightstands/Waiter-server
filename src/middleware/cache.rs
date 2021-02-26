@@ -7,15 +7,20 @@ use futures::{
 	channel::oneshot
 };
 
-pub type Cache = std::sync::Arc<dashmap::DashSet<String>>;
+//use SharedPointer
+type Cache = dashmap::DashSet<String>;
+pub type CachePointer = Pin<SharedPointer<Cache>>;
 
-pub async fn make_impedency_cache() -> (Cache, oneshot::Sender<()>) {
-	let cache = Cache::new(dashmap::DashSet::new());
+pub async fn make_impedency_cache() -> (Box<Cache>, oneshot::Sender<()>) {
+	//use Box instead of Arc and use SharedPointer as reference
+	let cache = Box::new(Cache::new());
 	//Wipe the idempotency cache everyday
 	//TODO: truncate the capacity to a sensible amount
 	let (routine_stopper, recv) = oneshot::channel::<()>();
 	{
-		let cache = cache.clone();
+		let cache = unsafe {
+			SharedPointer::new(&*cache)
+		};
 		actix_rt::spawn(
 			async move {
 				log::debug!("Scheduled Cache clearer");
@@ -34,7 +39,7 @@ pub async fn make_impedency_cache() -> (Cache, oneshot::Sender<()>) {
 	(cache, routine_stopper)
 }
 
-pub struct IdempotencyCache(pub Cache);
+pub struct IdempotencyCache(pub CachePointer);
 
 impl<S, B> dev::Transform<S> for IdempotencyCache
 where
@@ -66,7 +71,7 @@ where
 
 pub struct IdempotencyCacheService<S: Service>{
 	service: S,
-	cache: Cache
+	cache: CachePointer
 }
 
 impl<S, B> Service for IdempotencyCacheService<S>

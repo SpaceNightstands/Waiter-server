@@ -67,16 +67,16 @@ async fn main() -> std::io::Result<()> {
 		middleware
 	};
 	let server = {
-		let (key_ref, admins_ref) = unsafe {
+		let (key_ref, admins_ref, cache_ref) = unsafe {
 			(
 				SharedPointer::new(&key),
 				admins.as_ref().map(
 					|admins| SharedPointer::new(admins)
-				)
+				),
+				SharedPointer::new(&*cache)
 			)
 		};
 		HttpServer::new(move || {
-			let cache = cache.clone();
 			//Middleware is executed in reverse registration order
 			App::new()
 				.app_data(
@@ -90,7 +90,7 @@ async fn main() -> std::io::Result<()> {
 							).into()
 						)
 				).data(conn.clone())
-				.wrap(cache::IdempotencyCache(cache))
+				.wrap(cache::IdempotencyCache(cache_ref))
 				.wrap(auth::JWTAuth(key_ref))
 				.wrap(actix_cors::Cors::permissive())
 				.wrap(middleware::Logger::default())
