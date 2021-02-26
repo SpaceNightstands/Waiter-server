@@ -2,7 +2,7 @@ use std::pin::Pin;
 use std::marker::PhantomPinned;
 use std::fmt::Debug;
 
-pub(crate) struct SharedPointer<T> {
+pub struct SharedPointer<T> {
 	pointer: *const T,
 	_pin: PhantomPinned
 }
@@ -15,6 +15,11 @@ impl<T> SharedPointer<T> {
 				_pin: PhantomPinned
 			}
 		)
+	}
+
+	#[cfg(test)]
+	unsafe fn get_pointer(&self) -> *const T {
+		self.pointer
 	}
 }
 
@@ -50,10 +55,10 @@ impl<T: Debug> Debug for SharedPointer<T> {
 #[test]
 fn shared_pointer_single_threaded_test() {
 	let owned = String::from("test");
-	let shared = unsafe{
+	let shared = unsafe {
 		SharedPointer::new(&owned)
 	};
-	assert_eq!(&*shared, "Test");
+	assert_eq!(&*shared, "test");
 }
 
 #[test]
@@ -66,4 +71,24 @@ fn shared_pointer_multithreaded_test() {
 		&*shared == "Test"
 	}).join().unwrap();
 	assert!(is_equal);
+}
+
+#[test]
+fn box_and_ref_test() {
+	let (owned, reference) = get_box_and_ref();
+	unsafe {
+		assert_eq!(
+			&*owned as *const String,
+			Pin::into_inner_unchecked(reference).get_pointer()
+		);
+	};
+}
+
+#[cfg(test)]
+fn get_box_and_ref() -> (Box<String>, Pin<SharedPointer<String>>) {
+	let owned = Box::new(String::from("Test"));
+	let shared = unsafe{
+		SharedPointer::new(&*owned)
+	};
+	(owned, shared)
 }
