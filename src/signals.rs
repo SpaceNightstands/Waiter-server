@@ -67,7 +67,8 @@ pub(super) fn handle_kill_signals(server: Server, database_stopper: Sender<()>, 
 
 #[inline]
 async fn stopper(server: Server, database: Sender<()>, cache: Sender<()>) {
-	server.stop(true).await;
+	//TODO: Replace with blocking channels
 	database.send(()).unwrap();
 	cache.send(()).unwrap();
+	server.stop(true).await;
 }

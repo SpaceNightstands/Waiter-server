@@ -110,10 +110,6 @@ async fn main() -> std::io::Result<()> {
 
 	let return_value = server.await;
 
-	println!("Cleanup");
-	drop(key);
-	drop(admins);
-
 	return_value
 }
 
