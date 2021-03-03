@@ -41,11 +41,10 @@ pub async fn make_impedency_cache() -> (Box<Cache>, oneshot::Sender<()>) {
 
 pub struct IdempotencyCache(pub CachePointer);
 
-impl<S, B> dev::Transform<S> for IdempotencyCache
+impl<S> dev::Transform<S> for IdempotencyCache
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<dev::Body>, Error = AxError>,
 	S::Future: 'static,
-	B: 'static
 {
 	type Request = S::Request;
 
@@ -74,11 +73,10 @@ pub struct IdempotencyCacheService<S: Service>{
 	cache: CachePointer
 }
 
-impl<S, B> Service for IdempotencyCacheService<S>
+impl<S> Service for IdempotencyCacheService<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
+	S: Service<Request = ServiceRequest, Response = ServiceResponse<dev::Body>, Error = AxError>,
 	S::Future: 'static,
-	B: 'static
 {
 	type Request = S::Request;
 
@@ -112,9 +110,16 @@ where
 				let cache_contains_idempotency = self.cache.contains(idempotency);
 				log::debug!("Is token in cache?: {:?}", cache_contains_idempotency);
 				if cache_contains_idempotency {
+					/*ext and idempotency contain references to req, so
+					 *we have to drop the references before using into_parts*/
+					drop(idempotency);
+					drop(ext);
 					Box::pin(
-						future::err(
-							idemp_error("Invalid idemp token").into()
+						future::ok(
+							ServiceResponse::new(
+								req.into_parts().0,
+								"Already responded to this token".into()
+							)
 						)
 					)
 				} else {
