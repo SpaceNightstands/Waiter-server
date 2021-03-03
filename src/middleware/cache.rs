@@ -109,8 +109,9 @@ where
 				/*If the idempotency token has been used already, 
 				 *return an error*/
 				log::debug!("Idemp Token: {:?}", idempotency);
-				log::debug!("Is token in cache?: {:?}", self.cache.contains(idempotency));
-				if self.cache.contains(idempotency) {
+				let cache_contains_idempotency = self.cache.contains(idempotency);
+				log::debug!("Is token in cache?: {:?}", cache_contains_idempotency);
+				if cache_contains_idempotency {
 					Box::pin(
 						future::err(
 							idemp_error("Invalid idemp token").into()
