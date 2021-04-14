@@ -1,5 +1,4 @@
 #!/bin/env sh
-QNAP_TOOLCHAIN_PATH="/home/quq/x86_64-QNAP-linux-gnu"
 
 # Path to gcc
 LINKER_PATH="$QNAP_TOOLCHAIN_PATH/cross-tools/bin/x86_64-QNAP-linux-gnu-gcc"
