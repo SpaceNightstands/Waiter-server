@@ -15,7 +15,6 @@ pub async fn make_impedency_cache() -> (Box<Cache>, oneshot::Sender<()>) {
 	//use Box instead of Arc and use SharedPointer as reference
 	let cache = Box::new(Cache::new());
 	//Wipe the idempotency cache everyday
-	//TODO: truncate the capacity to a sensible amount
 	let (routine_stopper, recv) = oneshot::channel::<()>();
 	{
 		let cache = unsafe {
@@ -30,6 +29,7 @@ pub async fn make_impedency_cache() -> (Box<Cache>, oneshot::Sender<()>) {
 						_ = recv => break,
 						is_past_midnight = crate::until_midnight() => if is_past_midnight {
 							cache.clear();
+							cache.shrink_to_fit();
 						}
 					}
 				}

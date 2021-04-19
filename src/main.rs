@@ -90,12 +90,12 @@ async fn main() -> std::io::Result<()> {
 							).into()
 						)
 				).data(conn.clone())
-				.wrap(cache::IdempotencyCache(cache_ref))
-				.wrap(auth::JWTAuth(key_ref))
-				.wrap(actix_cors::Cors::permissive())
-				.wrap(middleware::Logger::default())
-				.service(menu::get_service(admins_ref))
-				.service(order::get_service(admins_ref))
+				 .wrap(cache::IdempotencyCache(cache_ref))
+				 .wrap(auth::JWTAuth(key_ref))
+				 .wrap(actix_cors::Cors::permissive())
+				 .wrap(middleware::Logger::default())
+				 .service(menu::get_service(admins_ref))
+				 .service(order::get_service(admins_ref))
 		})
 	}.bind(
 		format!(
