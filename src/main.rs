@@ -108,6 +108,13 @@ async fn main() -> std::io::Result<()> {
 
 	signals::handle_kill_signals(server.clone(), database_stopper, cache_stopper);
 
+	//We explicitly drop the values that were needed by the server
+	drop(admins);
+	drop(key);
+	/*We can't drop cache as the cache_stopper does not notify us when the 
+	 *task has actually stopped*/
+	//drop(cache);
+
 	let return_value = server.await;
 
 	return_value
