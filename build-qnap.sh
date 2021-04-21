@@ -9,4 +9,5 @@ export SQLX_OFFLINE=true
 export CC=$LINKER_PATH
 #Path to ar
 export AR="$QNAP_TOOLCHAIN_PATH/cross-tools/bin/x86_64-QNAP-linux-gnu-ar"
-cargo rustc "$@" -- "-Clinker=$LINKER_PATH" "-L $LIB_PATH"
+
+cargo rustc --target-dir target/x86_64-QNAP-linux-gnu "$@"  -- "-Clinker=$LINKER_PATH" "-L $LIB_PATH"
