@@ -6,6 +6,11 @@ mod database;
 mod pointer;
 mod signals;
 
+#[cfg(not(test))]
+type Pool = sqlx::MySqlPool;
+#[cfg(test)]
+type Pool = test::Pool;
+
 #[cfg(test)]
 mod test;
 

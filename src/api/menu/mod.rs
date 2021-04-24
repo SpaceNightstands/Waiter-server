@@ -21,7 +21,7 @@ pub(crate) fn get_service(filter: Option<filter::SubList>) -> actix_web::Scope{
 	}
 }
 
-async fn get_menu(db: web::Data<MySqlPool>) -> Result<impl Responder, Error> {
+async fn get_menu(db: web::Data<Pool>) -> Result<impl Responder, Error> {
 	let mut tx = db.get_ref()
 		.begin().await
 		.map_err(Error::from)?;
@@ -50,7 +50,7 @@ async fn get_menu(db: web::Data<MySqlPool>) -> Result<impl Responder, Error> {
 	Ok(web::Json(products))
 }
 
-async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<impl Responder, Error> {
+async fn put_menu(db: web::Data<Pool>, prod: web::Json<Product>) -> Result<impl Responder, Error> {
 	log::debug!("Inserting Product named \"{}\" into product list", prod.name());
 	let mut tx = db.get_ref()
 		.begin().await
@@ -72,7 +72,7 @@ async fn put_menu(db: web::Data<MySqlPool>, prod: web::Json<Product>) -> Result<
 	Ok(web::Json(product))
 }
 
-async fn delete_menu(db: web::Data<MySqlPool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, Error> {
+async fn delete_menu(db: web::Data<Pool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, Error> {
 	log::debug!("Deleting Product {} from product list", id);
 	let mut tx = db.get_ref()
 		.begin().await

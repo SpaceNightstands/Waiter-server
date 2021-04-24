@@ -49,7 +49,7 @@ macro_rules! stream_to_vec {
 	}
 }
 
-async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+async fn get_orders(db: web::Data<Pool>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
 	let owner = get_auth_token(&owner)?;
 
@@ -67,7 +67,7 @@ async fn get_orders(db: web::Data<MySqlPool>, req: web::HttpRequest) -> Result<i
 	Ok(web::Json(orders))
 }
 
-async fn get_all_orders(db: web::Data<MySqlPool>) -> Result<impl Responder, Error> {
+async fn get_all_orders(db: web::Data<Pool>) -> Result<impl Responder, Error> {
 	let mut query = sqlx::query!(
 		"SELECT o.id,o.owner,o.owner_name,c.item,c.quantity
 		 FROM orders AS o INNER JOIN carts AS c
@@ -87,7 +87,7 @@ struct PutOrder {
 	cart: Vec<(u32, u32)>
 }
 
-async fn put_orders(db: web::Data<MySqlPool>, put_order: web::Json<PutOrder>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+async fn put_orders(db: web::Data<Pool>, put_order: web::Json<PutOrder>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
 	let owner = get_auth_token(&owner)?;
 	if put_order.cart.len() <= 0 {
