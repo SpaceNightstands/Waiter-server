@@ -9,15 +9,27 @@ use actix_web::{
 	http
 };
 use sqlx::types::chrono;
-use hmac::NewMac;
 use jwt::SignWithKey;
+
+//Common JSON Auth Token
+static AUTH: String = {
+	let token = auth::AuthToken {
+		sub: String::from("test"),
+		exp: chrono::Utc::today()
+			.succ()
+			.succ()
+			.and_hms(0, 0, 0)
+			.with_timezone(&chrono::FixedOffset::east(0)),
+		idempotency: String::from("test")
+	};
+	format!("Bearer {}", token.sign_with_key(&super::JWT_KEY).unwrap())
+};
+
 
 #[actix_rt::test]
 pub(super) async fn orders_test() {
 	let database = super::get_database().await;
 	crate::MIGRATOR.run(&database).await.unwrap();
-
-	let key = auth::Key::new_varkey(b"Test").unwrap();
 
 	let mut service = test::init_service(
 		actix_web::App::new()
@@ -25,26 +37,12 @@ pub(super) async fn orders_test() {
 			.wrap(
 				auth::JWTAuth(
 					unsafe {
-						crate::pointer::SharedPointer::new(&key)
+						crate::pointer::SharedPointer::new(&super::JWT_KEY)
 					}
 				)
 			).service(crate::api::order::get_service(None))
 			.service(crate::api::menu::get_service(None))
 	).await;
-
-	//Common JSON Auth Token
-	let auth: String = {
-		let auth = auth::AuthToken {
-			sub: String::from("test"),
-			exp: chrono::Utc::today()
-				.succ()
-				.succ()
-				.and_hms(0, 0, 0)
-				.with_timezone(&chrono::FixedOffset::east(0)),
-			idempotency: String::from("test")
-		};
-		auth.sign_with_key(&key).unwrap()
-	};
 
 	//Common Product
 	let prod = {
@@ -52,51 +50,37 @@ pub(super) async fn orders_test() {
 			.uri("/menu")
 			.header(
 				http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
-			).set_json(
-				&Product {
-					id: 0,
-					kind: ProductKind::Available,
-					name: String::from("Test"),
-					price: 100,
-					max_num: 3,
-					ingredients: None,
-					image: vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
-				}
-			).to_request();
+				AUTH
+			).set_json(&super::EXAMPLE_PRODUCT)
+			.to_request();
 		let resp: Product = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
 		*resp.id()
 	};
 
-	//Wrong PUT's
+	//Wrong PUTs
 	{
 		let req = test::TestRequest::put()
 			.uri("/order")
 			.header(
 				http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
+				AUTH
 			).set_json(
 				&new_order(
 					String::from("Test"),
-					vec![(prod, 4)] //4 is over max_num for the prod product
+					vec![(prod, 4)] //4 is over max_num for the product
 				)
 			).to_request();
 		let resp = service.call(req).await.unwrap();
-		assert_eq!(
-			resp.status(),
-			http::StatusCode::INTERNAL_SERVER_ERROR,
-			"\nExpected: {:?}\nResponse: {:?}",
-			http::StatusCode::INTERNAL_SERVER_ERROR, resp
-		);
+		assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
 	}
 	{
 		let req = test::TestRequest::put()
 			.uri("/order")
 			.header(
 				http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
+				AUTH
 			).set_json(
 				&new_order(
 					String::from("Test"),
@@ -104,12 +88,7 @@ pub(super) async fn orders_test() {
 				)
 			).to_request();
 		let resp = service.call(req).await.unwrap();
-		assert_eq!(
-			resp.status(),
-			http::StatusCode::BAD_REQUEST,
-			"\nExpected: {:?}\nResponse: {:?}",
-			http::StatusCode::BAD_REQUEST, resp
-		);
+		assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
 	}
 
 	//Expected return from both the PUT and the GET
@@ -126,7 +105,7 @@ pub(super) async fn orders_test() {
 			.uri("/order")
 			.header(
 				http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
+				AUTH
 			).set_json(
 				&new_order(
 					String::from("Test"),
@@ -144,7 +123,7 @@ pub(super) async fn orders_test() {
 			.uri("/order")
 			.header(
 				actix_web::http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
+				AUTH
 			).to_request();
 		let resp: Vec<Order> = test::read_body_json(
 			service.call(req).await.unwrap()

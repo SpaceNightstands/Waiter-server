@@ -69,7 +69,7 @@ mod image_from_base64 {
 	}
 }
 
-#[derive(Serialize, Deserialize, Getters, Debug)]
+#[derive(Serialize, Deserialize, Getters, Debug, PartialEq, Eq)]
 pub struct Order {
 	#[serde(default)]
 	pub(crate) id: u32,
