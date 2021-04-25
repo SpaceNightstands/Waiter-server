@@ -101,8 +101,8 @@ async fn put_orders(db: web::Data<Pool>, order: web::Json<Order>, req: web::Http
 		.map_err(Error::from)?;
 
 	let insert_id = sqlx::query!(
-		"INSERT INTO orders(owner, owner_name) VALUES (?, ?)",
-		owner.sub(), order.owner_name
+		"INSERT INTO orders(owner, owner_name, first_term) VALUES (?, ?, ?)",
+		owner.sub(), order.owner_name, order.first_term
 	).execute(&mut tx).await
     .map_err(Error::from)?
 		.last_insert_id();
