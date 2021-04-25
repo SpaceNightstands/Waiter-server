@@ -1,5 +1,4 @@
 use sqlx::{
-	MySqlPool,
 	Error,
 	types::chrono::{
 		self,
@@ -10,9 +9,10 @@ use futures::{
 	channel::oneshot,
 	future::FutureExt
 };
+use super::Pool;
 
-pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>), Error> {
-	let conn = MySqlPool::connect(db_url).await?;
+pub async fn get_database(db_url: &str)->Result<(Pool, oneshot::Sender<()>), Error> {
+	let conn = Pool::connect(db_url).await?;
 
 	let mut transaction = conn.begin().await?;
 	crate::MIGRATOR.run(&mut transaction).await?;
@@ -61,7 +61,7 @@ pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>)
 }
 
 #[inline]
-async fn delete_data(db: &MySqlPool) -> Result<(), Error> {
+async fn delete_data(db: &Pool) -> Result<(), Error> {
 	//Wipe orders and reset the auto incrementing index to 1
 	let mut transaction = db.begin().await?;
 	sqlx::query!(
