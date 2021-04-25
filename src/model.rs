@@ -76,6 +76,7 @@ pub struct Order {
 	#[serde(default)]
 	pub(crate) owner: String,
 	pub(crate) owner_name: String,
+	pub(crate) first_term: bool,
 	pub(crate) cart: Vec<(u32, u32)>,
 }
 

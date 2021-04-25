@@ -42,6 +42,7 @@ macro_rules! stream_to_vec {
 					id: item.id,
 					owner: item.owner,
 					owner_name: item.owner_name,
+					first_term: item.first_term,
 					cart: vec![(item.item, item.quantity)]
 				}
 			);
@@ -54,7 +55,7 @@ async fn get_orders(db: web::Data<Pool>, req: web::HttpRequest) -> Result<impl R
 	let owner = get_auth_token(&owner)?;
 
 	let mut query = sqlx::query!(
-		"SELECT o.id,o.owner,o.owner_name,c.item,c.quantity
+		"SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity
 		 FROM orders AS o INNER JOIN carts AS c
 		 ON o.id=c.order
 		 WHERE o.owner=?
@@ -69,7 +70,7 @@ async fn get_orders(db: web::Data<Pool>, req: web::HttpRequest) -> Result<impl R
 
 async fn get_all_orders(db: web::Data<Pool>) -> Result<impl Responder, Error> {
 	let mut query = sqlx::query!(
-		"SELECT o.id,o.owner,o.owner_name,c.item,c.quantity
+		"SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity
 		 FROM orders AS o INNER JOIN carts AS c
 		 ON o.id=c.order
 		 ORDER BY id",
@@ -80,25 +81,10 @@ async fn get_all_orders(db: web::Data<Pool>) -> Result<impl Responder, Error> {
 	Ok(web::Json(orders))
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
-struct PutOrder {
-	owner_name: String,
-	//cart is an array of (item id, quantity) tuples
-	cart: Vec<(u32, u32)>
-}
-
-#[cfg(test)]
-pub(crate) fn new_order(owner_name: String, cart: Vec<(u32, u32)>) -> PutOrder {
-	PutOrder {
-		owner_name,
-		cart
-	}
-}
-
-async fn put_orders(db: web::Data<Pool>, put_order: web::Json<PutOrder>, req: web::HttpRequest) -> Result<impl Responder, Error> {
+async fn put_orders(db: web::Data<Pool>, order: web::Json<Order>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
 	let owner = get_auth_token(&owner)?;
-	if put_order.cart.len() <= 0 {
+	if order.cart.len() <= 0 {
 		return Err(
 			Error::Static{
 				status: actix_web::http::StatusCode::BAD_REQUEST,
@@ -116,12 +102,12 @@ async fn put_orders(db: web::Data<Pool>, put_order: web::Json<PutOrder>, req: we
 
 	let insert_id = sqlx::query!(
 		"INSERT INTO orders(owner, owner_name) VALUES (?, ?)",
-		owner.sub(), put_order.owner_name
+		owner.sub(), order.owner_name
 	).execute(&mut tx).await
     .map_err(Error::from)?
 		.last_insert_id();
 
-	for (item, quantity) in put_order.cart.iter() {
+	for (item, quantity) in order.cart.iter() {
 		sqlx::query!(
 			"INSERT INTO carts VALUES (?, ?, ?)",
 			insert_id, item, quantity
@@ -132,14 +118,8 @@ async fn put_orders(db: web::Data<Pool>, put_order: web::Json<PutOrder>, req: we
 
 	tx.commit().await.map_err(Error::from)?;
 
-	let put_order = put_order.into_inner();
-	let order = Order {
-		id: insert_id as u32,
-		//TODO: Find a better way to pass the owner id
-		owner: owner.sub().clone(),
-		owner_name: put_order.owner_name,
-		cart: put_order.cart
-	};
+	let mut order = order.into_inner();
+	order.id = insert_id as u32;
 
 	Ok(web::Json(order))
 }
