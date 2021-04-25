@@ -99,5 +99,3 @@ async fn delete_menu(db: web::Data<Pool>, web::Path(id): web::Path<u32>) -> Resu
 }
 
 //TODO: edit product
-#[cfg(test)]
-mod test;

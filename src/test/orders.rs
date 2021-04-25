@@ -1,7 +1,7 @@
 use crate::{
 	model::*,
 	middleware::auth,
-	api::order::PutOrder
+	api::order::new_order
 };
 use actix_web::{
 	test,
@@ -12,14 +12,16 @@ use sqlx::types::chrono;
 use hmac::NewMac;
 use jwt::SignWithKey;
 
-pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
-	let key = auth::Key::new_varkey(
-		dotenv_codegen::dotenv!("JWT_SECRET").as_bytes()
-	).unwrap();
+#[actix_rt::test]
+pub(super) async fn orders_test() {
+	let database = super::get_database().await;
+	crate::MIGRATOR.run(&database).await.unwrap();
+
+	let key = auth::Key::new_varkey(b"Test").unwrap();
 
 	let mut service = test::init_service(
 		actix_web::App::new()
-			.data(database.clone())
+			.data(database)
 			.wrap(
 				auth::JWTAuth(
 					unsafe {
@@ -76,10 +78,10 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 				http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
 			).set_json(
-				&PutOrder{
-					owner_name: String::from("Test"),
-					cart: vec![(prod, 4)] //4 is over max_num for the prod product
-				}
+				&new_order(
+					String::from("Test"),
+					vec![(prod, 4)] //4 is over max_num for the prod product
+				)
 			).to_request();
 		let resp = service.call(req).await.unwrap();
 		assert_eq!(
@@ -96,10 +98,10 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 				http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
 			).set_json(
-				&PutOrder{
-					owner_name: String::from("Test"),
-					cart: Vec::new() //Empty carts aren't accepted
-				}
+				&new_order(
+					String::from("Test"),
+					vec![(prod, 4)] //Empty carts aren't accepted
+				)
 			).to_request();
 		let resp = service.call(req).await.unwrap();
 		assert_eq!(
@@ -126,10 +128,10 @@ pub(super) async fn orders_test(database: &sqlx::MySqlPool) {
 				http::header::AUTHORIZATION,
 				format!("Bearer {}", auth)
 			).set_json(
-				&PutOrder{
-					owner_name: String::from("Test"),
-					cart: vec![(prod, 3)]
-				}
+				&new_order(
+					String::from("Test"),
+					vec![(prod, 3)] 
+				)
 			).to_request();
 		let resp: Order = test::read_body_json(
 			service.call(req).await.unwrap()

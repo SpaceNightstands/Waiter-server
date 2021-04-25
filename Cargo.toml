@@ -39,3 +39,13 @@ features=[
 [dev-dependencies]
 actix-rt = "*"
 serde_json = "*"
+
+[dev-dependencies.sqlx]
+version="^0.4.2"
+default-features=false
+features=[
+	"runtime-actix-rustls",
+	"sqlite",
+	"json",
+	"chrono"
+]

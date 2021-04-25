@@ -18,7 +18,7 @@ pub enum ProductKind {
 	Beverage
 }
 
-#[derive(Serialize, Deserialize, Getters, FromRow, Debug)]
+#[derive(Serialize, Deserialize, Getters, FromRow, Debug, PartialEq, Eq)]
 pub struct Product {
 	#[serde(default)]
 	pub(crate) id: u32,
@@ -73,6 +73,7 @@ mod image_from_base64 {
 pub struct Order {
 	#[serde(default)]
 	pub(crate) id: u32,
+	#[serde(default)]
 	pub(crate) owner: String,
 	pub(crate) owner_name: String,
 	pub(crate) cart: Vec<(u32, u32)>,
@@ -98,5 +99,3 @@ mod error {
 	}
 }
 
-#[cfg(test)]
-mod test;

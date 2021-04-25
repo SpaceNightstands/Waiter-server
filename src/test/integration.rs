@@ -11,27 +11,29 @@ use actix_web::{
 use sqlx::types::chrono;
 use hmac::NewMac;
 use jwt::SignWithKey;
-use std::sync::Arc;
 
-pub(super) async fn integration_test(database: &sqlx::MySqlPool) {
-	let key = auth::Key::new_varkey(
-		dotenv_codegen::dotenv!("JWT_SECRET").as_bytes()
-	).unwrap();
-	let cache = Arc::new(dashmap::DashSet::new());
+#[actix_rt::test]
+pub(super) async fn integration_test() {
+	let database = super::get_database().await;
+	crate::MIGRATOR.run(&database).await.unwrap();
+
+	let key = auth::Key::new_varkey(b"Test").unwrap();
+	let cache = dashmap::DashSet::<String>::new();
 	let mut filter = std::collections::HashSet::with_capacity(1);
 	filter.insert("admin".to_string());
 
 	let mut service = {
-		let (key_ref, filter_ref) = unsafe {
+		let (key_ref, filter_ref, cache_ref) = unsafe {
 			(
 				SharedPointer::new(&key),
-				SharedPointer::new(&filter)
+				SharedPointer::new(&filter),
+				SharedPointer::new(&cache)
 			)
 		};
 		test::init_service(
 			actix_web::App::new()
 				.data(database.clone())
-				.wrap(cache::IdempotencyCache(cache))
+				.wrap(cache::IdempotencyCache(cache_ref))
 				.wrap(auth::JWTAuth(key_ref))
 				.wrap(actix_web::middleware::Logger::default())
 				.service(menu::get_service(Some(filter_ref)))

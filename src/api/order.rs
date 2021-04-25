@@ -87,6 +87,14 @@ struct PutOrder {
 	cart: Vec<(u32, u32)>
 }
 
+#[cfg(test)]
+pub(crate) fn new_order(owner_name: String, cart: Vec<(u32, u32)>) -> PutOrder {
+	PutOrder {
+		owner_name,
+		cart
+	}
+}
+
 async fn put_orders(db: web::Data<Pool>, put_order: web::Json<PutOrder>, req: web::HttpRequest) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
 	let owner = get_auth_token(&owner)?;
@@ -151,5 +159,3 @@ const fn AuthError() -> Error {
 	}
 }
 
-#[cfg(test)]
-mod test;

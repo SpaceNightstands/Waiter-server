@@ -2,33 +2,28 @@ use crate::model::*;
 use actix_web::test;
 use actix_web::dev::Service;
 
-pub(super) async fn menu_test(database: &sqlx::MySqlPool) {
+#[actix_rt::test]
+pub(super) async fn menu_test() {
+	let database = super::get_database().await;
+	crate::MIGRATOR.run(&database).await.unwrap();
+
 	let mut service = test::init_service(
 		actix_web::App::new()
-			.data(database.clone())
+			.data(database)
 			.service(crate::api::menu::get_service(None))
 	).await;
-
-	let prod = Product {
-		id: 1,
-		kind: ProductKind::Available,
-		name: String::from("Test"),
-		price: 100,
-		max_num: 3,
-		ingredients: None,
-		image: vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
-	};
 
 	//Put
 	{
 		let req = test::TestRequest::put()
 			.uri("/menu")
-			.set_json(&prod)
+			.set_json(&super::EXAMPLE_PRODUCT)
 			.to_request();
 		let resp: Product = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(resp, prod, "Expected: {:?}\n\nResponse: {:?}", prod, resp);
+
+		assert_eq!(&resp, &super::EXAMPLE_PRODUCT);
 	}
 	//Get
 	{
@@ -38,7 +33,7 @@ pub(super) async fn menu_test(database: &sqlx::MySqlPool) {
 		let resp: Vec<Product> = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(resp[0], prod, "Expected: {:?}\n\nResponse: {:?}", prod, resp);
+		assert_eq!(&resp[0], &super::EXAMPLE_PRODUCT);
 	}
 	//Delete
 	{
@@ -48,7 +43,9 @@ pub(super) async fn menu_test(database: &sqlx::MySqlPool) {
 		let resp: Product = test::read_body_json(
 			service.call(req).await.unwrap()
 		).await;
-		assert_eq!(resp, prod, "Expected: {:?}\n\nResponse: {:?}", prod, resp);
+		assert_eq!(&resp, &super::EXAMPLE_PRODUCT);
+
+		//Now the menu should be empty
 		let req = test::TestRequest::get()
 			.uri("/menu")
 			.to_request();

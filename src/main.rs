@@ -15,6 +15,12 @@ type Pool = test::Pool;
 mod test;
 
 use std::env::var as env_var;
+use hmac::NewMac;
+use actix_web::{
+	HttpServer,
+	App,
+	middleware as actix_midware
+};
 use api::*;
 use middleware::*;
 use futures::future::FutureExt;
@@ -53,7 +59,6 @@ async fn main() -> std::io::Result<()> {
     .expect("Environment variable HOST not set");*/
 
 	//Create JWT Key
-	use hmac::NewMac;
 	let key = auth::Key::new_varkey(
 		env_var("JWT_SECRET")
 			.expect("Environment variable DATABASE_URL not set")
@@ -68,11 +73,6 @@ async fn main() -> std::io::Result<()> {
 				.collect::<std::collections::HashSet<String>>()
 		).ok();
 
-	use actix_web::{
-		HttpServer,
-		App,
-		middleware
-	};
 	let server = {
 		let (key_ref, admins_ref, cache_ref) = unsafe {
 			(
@@ -100,7 +100,7 @@ async fn main() -> std::io::Result<()> {
 				 .wrap(cache::IdempotencyCache(cache_ref))
 				 .wrap(auth::JWTAuth(key_ref))
 				 .wrap(actix_cors::Cors::permissive())
-				 .wrap(middleware::Logger::default())
+				 .wrap(actix_midware::Logger::default())
 				 .service(menu::get_service(admins_ref))
 				 .service(order::get_service(admins_ref))
 		})
