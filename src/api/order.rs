@@ -10,7 +10,7 @@ pub(crate) fn get_service(filter: Option<filter::SubList>) -> actix_web::Scope{
 
 	let admin_routes = web::scope("")
 		.route("/all", web::get().to(get_all_orders))
-		.route("", web::delete().to(set_order_as_done));
+		.route("/{id}", web::delete().to(set_order_as_done));
 
 	if let Some(filter) = filter {
 		scope.service(admin_routes.wrap(filter::SubjectFilter(filter)))
