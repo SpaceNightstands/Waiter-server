@@ -2,6 +2,7 @@ use super::{
 	auth::AuthToken,
 	prelude::*
 };
+use actix_web::rt;
 use futures::{
 	future::FutureExt,
 	channel::oneshot
@@ -20,7 +21,7 @@ pub async fn make_impedency_cache() -> (Box<Cache>, oneshot::Sender<()>) {
 		let cache = unsafe {
 			SharedPointer::new(&*cache)
 		};
-		actix_rt::spawn(
+		rt::spawn(
 			async move {
 				log::debug!("Scheduled Cache clearer");
 				let mut recv = recv.fuse();

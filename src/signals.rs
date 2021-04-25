@@ -1,4 +1,8 @@
 use actix_web::dev::Server;
+use actix_web::rt::{
+	spawn,
+	signal
+};
 use futures::{
 	future::FutureExt,
 	channel::oneshot::Sender
@@ -6,8 +10,8 @@ use futures::{
 
 #[cfg(not(unix))]
 pub(super) fn handle_kill_signals(server: Server, database_stopper: Sender<()>, cache_stopper: Sender<()>){
-	actix_rt::spawn(
-		actix_rt::signal::ctrl_c()
+	spawn(
+		signal::ctrl_c()
 			.then(
 				|_| async move {
 					log::debug!("Received Ctrl-C");
@@ -21,10 +25,12 @@ pub(super) fn handle_kill_signals(server: Server, database_stopper: Sender<()>, 
 pub(super) fn handle_kill_signals(server: Server, database_stopper: Sender<()>, cache_stopper: Sender<()>){
 	/*On *nix register a listener for every terminating
 	 *signal*/
-	use actix_rt::signal::unix::{
+	use signal::unix::{
 		self,
 		SignalKind
 	};
+	use std::task::Poll;
+
 	let mut signals = Vec::new();
 	let signal_list: [SignalKind; 4] = [
 		SignalKind::interrupt(),
@@ -45,8 +51,7 @@ pub(super) fn handle_kill_signals(server: Server, database_stopper: Sender<()>, 
 	}
 
 	//Poll every stream and stop everything if any signal is received
-	use std::task::Poll;
-	actix_rt::spawn(
+	spawn(
 		futures::future::poll_fn(
 			move |ctx|{
 				for sig in signals.iter_mut() {

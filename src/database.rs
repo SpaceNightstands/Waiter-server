@@ -1,3 +1,4 @@
+use actix_web::rt;
 use sqlx::{
 	Error,
 	types::chrono::{
@@ -40,7 +41,7 @@ pub async fn get_database(db_url: &str)->Result<(Pool, oneshot::Sender<()>), Err
 	let (routine_stopper, recv) = oneshot::channel::<()>();
 	{
 		let conn = conn.clone();
-		actix_rt::spawn(
+		rt::spawn(
 			async move {
 				log::debug!("Scheduled Database wiper");
 				let mut recv = recv.fuse();

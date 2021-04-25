@@ -128,7 +128,9 @@ async fn main() -> std::io::Result<()> {
 }
 
 fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = bool>> {
+	use actix_web::rt;
 	use sqlx::types::chrono::Local;
+
 	async {
 		//Get today
 		let before_waiting = Local::today();
@@ -142,7 +144,7 @@ fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = b
 			//TODO: Handle error better
 			.unwrap();
 		//Tell the runtime that this future has to wait until midnight
-		actix_rt::time::delay_for(time_until_midnight).await;
+		rt::time::delay_for(time_until_midnight).await;
 		//Return if it's actually past midnight
 		Local::today() > before_waiting
 	}.fuse()
