@@ -1,6 +1,6 @@
 [package]
 name = "Waiter"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["quq <quq@magisystem.xyz>"]
 edition = "2018"
 
