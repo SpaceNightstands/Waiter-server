@@ -9,7 +9,6 @@ use actix_web::{
 	dev::Service
 };
 use sqlx::types::chrono;
-use hmac::NewMac;
 use jwt::SignWithKey;
 
 #[actix_rt::test]
@@ -17,7 +16,6 @@ pub(super) async fn integration_test() {
 	let database = super::get_database().await;
 	crate::MIGRATOR.run(&database).await.unwrap();
 
-	let key = auth::Key::new_varkey(b"Test").unwrap();
 	let cache = dashmap::DashSet::<String>::new();
 	let mut filter = std::collections::HashSet::with_capacity(1);
 	filter.insert("admin".to_string());
@@ -25,7 +23,7 @@ pub(super) async fn integration_test() {
 	let mut service = {
 		let (key_ref, filter_ref, cache_ref) = unsafe {
 			(
-				SharedPointer::new(&key),
+				SharedPointer::new(&super::JWT_KEY),
 				SharedPointer::new(&filter),
 				SharedPointer::new(&cache)
 			)
@@ -55,7 +53,7 @@ pub(super) async fn integration_test() {
 			sub: "test".to_string(),
 			exp: common_expiry.clone(),
 			idempotency: "test0".to_string()
-		}.sign_with_key(&key).unwrap();
+		}.sign_with_key(&super::JWT_KEY).unwrap();
 		let auth = format!("Bearer {}", auth);
 
 		let req = test::TestRequest::get()
