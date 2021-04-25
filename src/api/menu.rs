@@ -33,7 +33,8 @@ async fn get_menu(db: web::Data<Pool>) -> Result<impl Responder, Error> {
 
 	//Prealloc the space
 	let mut products = Vec::with_capacity(product_count as usize);
-	let mut prod_stream = sqlx::query_as(
+	let mut prod_stream = sqlx::query_as_unchecked!(
+		Product,
 		"SELECT * FROM products"
 	).fetch(&mut tx);
 

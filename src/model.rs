@@ -4,14 +4,14 @@ use std::{
 };
 use serde::{Serialize, Deserialize};
 use sqlx::{
-	Type,
-	FromRow
+	FromRow,
+	Type
 };
 use derive_getters::Getters;
 
 #[derive(Serialize, Deserialize, Type, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all="lowercase")]
-#[sqlx(rename_all = "lowercase")]
+#[sqlx(rename_all="lowercase")]
 pub enum ProductKind {
 	Available,
 	Orderable,
