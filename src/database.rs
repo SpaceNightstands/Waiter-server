@@ -13,6 +13,11 @@ use futures::{
 
 pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>), Error> {
 	let conn = MySqlPool::connect(db_url).await?;
+
+	let mut transaction = conn.begin().await?;
+	crate::MIGRATOR.run(&mut transaction).await?;
+	transaction.commit().await?;
+
 	/*Check last order list addition,
 		truncate if older than a day
 	  Return truncator future*/
@@ -58,13 +63,13 @@ pub async fn get_database(db_url: &str)->Result<(MySqlPool, oneshot::Sender<()>)
 #[inline]
 async fn delete_data(db: &MySqlPool) -> Result<(), Error> {
 	//Wipe orders and reset the auto incrementing index to 1
-	let mut tx = db.begin().await?;
+	let mut transaction = db.begin().await?;
 	sqlx::query!(
 		"DELETE FROM orders"
-	).execute(&mut tx).await?;
+	).execute(&mut transaction).await?;
 	sqlx::query!(
 		"ALTER TABLE orders AUTO_INCREMENT = 1"
-	).execute(&mut tx).await?;
-	tx.commit().await?;
+	).execute(&mut transaction).await?;
+	transaction.commit().await?;
 	Ok(())
 }

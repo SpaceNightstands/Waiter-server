@@ -20,6 +20,8 @@ use middleware::*;
 use futures::future::FutureExt;
 use pointer::SharedPointer;
 
+static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
 	//Parse .env if possible
