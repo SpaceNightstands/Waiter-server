@@ -1,5 +1,95 @@
 {
   "db": "MySQL",
+  "0ff631b84d1beee264eba4591dd0666aaa8ae0f15b853c77f94d3a9fa537944c": {
+    "query": "SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t WHERE o.id=?",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 547
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        },
+        {
+          "ordinal": 1,
+          "name": "owner",
+          "type_info": {
+            "type": "VarString",
+            "flags": {
+              "bits": 4105
+            },
+            "char_set": 224,
+            "max_size": 1020
+          }
+        },
+        {
+          "ordinal": 2,
+          "name": "owner_name",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 4113
+            },
+            "char_set": 224,
+            "max_size": 262140
+          }
+        },
+        {
+          "ordinal": 3,
+          "name": "first_term: bool",
+          "type_info": {
+            "type": "Tiny",
+            "flags": {
+              "bits": 4097
+            },
+            "char_set": 63,
+            "max_size": 1
+          }
+        },
+        {
+          "ordinal": 4,
+          "name": "item",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 4139
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        },
+        {
+          "ordinal": 5,
+          "name": "quantity",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 4129
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "2b34e3db6c666ede12a91d6e5bee877f87eec12211f1c245e824b263f75bcc67": {
     "query": "SELECT\n\t\t\tid, kind as `kind: crate::model::ProductKind`,\n\t\t\tname, price, max_num, ingredients, image\n\t\tFROM products WHERE id = ?",
     "describe": {
@@ -123,6 +213,16 @@
       "nullable": []
     }
   },
+  "7cb9aa8396aa4b37ca765f7df3b73af41a73cbc4b34dd175e4bf52a5af892769": {
+    "query": "UPDATE orders SET done=true WHERE id=?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
   "7d9edaba3dab2a8b5420354abb61f4cc5f38b86017a6dce0156f0080fff1dcf9": {
     "query": "SELECT * FROM products",
     "describe": {
@@ -236,8 +336,158 @@
       "nullable": []
     }
   },
-  "8b10947574497ea3bdb5871fd4449caf885eb4f17a28aafa3c6bbdf2bee0e693": {
-    "query": "SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t WHERE o.owner=?\n\t\t ORDER BY id",
+  "8d0feea8e4d80b2fdeedcef47c40e09ae0dc3733abeb22048cda97f2a05b8ef7": {
+    "query": "SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t WHERE o.done = false\n\t\t ORDER BY id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 547
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        },
+        {
+          "ordinal": 1,
+          "name": "owner",
+          "type_info": {
+            "type": "VarString",
+            "flags": {
+              "bits": 4105
+            },
+            "char_set": 224,
+            "max_size": 1020
+          }
+        },
+        {
+          "ordinal": 2,
+          "name": "owner_name",
+          "type_info": {
+            "type": "Blob",
+            "flags": {
+              "bits": 4113
+            },
+            "char_set": 224,
+            "max_size": 262140
+          }
+        },
+        {
+          "ordinal": 3,
+          "name": "first_term: bool",
+          "type_info": {
+            "type": "Tiny",
+            "flags": {
+              "bits": 4097
+            },
+            "char_set": 63,
+            "max_size": 1
+          }
+        },
+        {
+          "ordinal": 4,
+          "name": "item",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 4139
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        },
+        {
+          "ordinal": 5,
+          "name": "quantity",
+          "type_info": {
+            "type": "Long",
+            "flags": {
+              "bits": 4129
+            },
+            "char_set": 63,
+            "max_size": 10
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "a81be4760be1d80767769a279d018616380813b2fbe0c1b6db910e119f5f3f2f": {
+    "query": "SELECT COUNT(*) as count FROM products",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "count",
+          "type_info": {
+            "type": "LongLong",
+            "flags": {
+              "bits": 129
+            },
+            "char_set": 63,
+            "max_size": 21
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "bb4d3a7d89c9bb51421762eee42040db3c337e22e3402e6561db1b3ce8bfa173": {
+    "query": "SELECT day FROM orders ORDER BY id DESC LIMIT 1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "day",
+          "type_info": {
+            "type": "Timestamp",
+            "flags": {
+              "bits": 1185
+            },
+            "char_set": 63,
+            "max_size": 19
+          }
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "bcfc6ef51bf7c8377ec3d52dc03ce0c0ab223033eb795955dad067d7d0c2ab6b": {
+    "query": "INSERT INTO orders(owner, owner_name, first_term) VALUES (?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
+      },
+      "nullable": []
+    }
+  },
+  "d9b913433df8ac49526e6dfbc34644d7d375819d3155cabafd5d68e61fe87e75": {
+    "query": "SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t WHERE o.owner=? AND o.done = false\n\t\t ORDER BY id",
     "describe": {
       "columns": [
         {
@@ -326,66 +576,6 @@
       ]
     }
   },
-  "a81be4760be1d80767769a279d018616380813b2fbe0c1b6db910e119f5f3f2f": {
-    "query": "SELECT COUNT(*) as count FROM products",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "count",
-          "type_info": {
-            "type": "LongLong",
-            "flags": {
-              "bits": 129
-            },
-            "char_set": 63,
-            "max_size": 21
-          }
-        }
-      ],
-      "parameters": {
-        "Right": 0
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
-  "bb4d3a7d89c9bb51421762eee42040db3c337e22e3402e6561db1b3ce8bfa173": {
-    "query": "SELECT day FROM orders ORDER BY id DESC LIMIT 1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "day",
-          "type_info": {
-            "type": "Timestamp",
-            "flags": {
-              "bits": 1185
-            },
-            "char_set": 63,
-            "max_size": 19
-          }
-        }
-      ],
-      "parameters": {
-        "Right": 0
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
-  "bcfc6ef51bf7c8377ec3d52dc03ce0c0ab223033eb795955dad067d7d0c2ab6b": {
-    "query": "INSERT INTO orders(owner, owner_name, first_term) VALUES (?, ?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 3
-      },
-      "nullable": []
-    }
-  },
   "f047386ebc12b1f31b7872129b96e173a17a12f5ff09d6bcd8ecaa7bcae338bb": {
     "query": "INSERT INTO products(kind, name, price, max_num, ingredients, image) VALUES (?, ?, ?, ?, ?, ?)",
     "describe": {
@@ -394,96 +584,6 @@
         "Right": 6
       },
       "nullable": []
-    }
-  },
-  "f152cd0be473bbb90b5e1e2b166786a7018dc2c3e48256487d1cdb4b9c35f2ee": {
-    "query": "SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity\n\t\t FROM orders AS o INNER JOIN carts AS c\n\t\t ON o.id=c.order\n\t\t ORDER BY id",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": {
-            "type": "Long",
-            "flags": {
-              "bits": 547
-            },
-            "char_set": 63,
-            "max_size": 10
-          }
-        },
-        {
-          "ordinal": 1,
-          "name": "owner",
-          "type_info": {
-            "type": "VarString",
-            "flags": {
-              "bits": 4105
-            },
-            "char_set": 224,
-            "max_size": 1020
-          }
-        },
-        {
-          "ordinal": 2,
-          "name": "owner_name",
-          "type_info": {
-            "type": "Blob",
-            "flags": {
-              "bits": 4113
-            },
-            "char_set": 224,
-            "max_size": 262140
-          }
-        },
-        {
-          "ordinal": 3,
-          "name": "first_term: bool",
-          "type_info": {
-            "type": "Tiny",
-            "flags": {
-              "bits": 4097
-            },
-            "char_set": 63,
-            "max_size": 1
-          }
-        },
-        {
-          "ordinal": 4,
-          "name": "item",
-          "type_info": {
-            "type": "Long",
-            "flags": {
-              "bits": 4139
-            },
-            "char_set": 63,
-            "max_size": 10
-          }
-        },
-        {
-          "ordinal": 5,
-          "name": "quantity",
-          "type_info": {
-            "type": "Long",
-            "flags": {
-              "bits": 4129
-            },
-            "char_set": 63,
-            "max_size": 10
-          }
-        }
-      ],
-      "parameters": {
-        "Right": 0
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
     }
   },
   "fe38fe1b1ab3d801a3f065f337a8e56ffdf3a712726b170e0b43d3e7bc2f7a8d": {

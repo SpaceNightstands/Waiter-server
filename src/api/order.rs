@@ -8,12 +8,14 @@ pub(crate) fn get_service(filter: Option<filter::SubList>) -> actix_web::Scope{
     .route("", web::get().to(get_orders))
     .route("", web::put().to(put_orders));
 
-	let all_orders_service = web::resource("/all").route(web::get().to(get_all_orders));
+	let admin_routes = web::scope("")
+		.route("/all", web::get().to(get_all_orders))
+		.route("", web::delete().to(set_order_as_done));
 
 	if let Some(filter) = filter {
-		scope.service(all_orders_service.wrap(filter::SubjectFilter(filter)))
+		scope.service(admin_routes.wrap(filter::SubjectFilter(filter)))
 	} else {
-		scope.service(all_orders_service)
+		scope.service(admin_routes)
 	}
 }
 
@@ -58,7 +60,7 @@ async fn get_orders(db: web::Data<Pool>, req: web::HttpRequest) -> Result<impl R
 		"SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity
 		 FROM orders AS o INNER JOIN carts AS c
 		 ON o.id=c.order
-		 WHERE o.owner=?
+		 WHERE o.owner=? AND o.done = false
 		 ORDER BY id",
 		owner.sub()
 	).fetch(db.get_ref());
@@ -73,6 +75,7 @@ async fn get_all_orders(db: web::Data<Pool>) -> Result<impl Responder, Error> {
 		"SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity
 		 FROM orders AS o INNER JOIN carts AS c
 		 ON o.id=c.order
+		 WHERE o.done = false
 		 ORDER BY id",
 	).fetch(db.get_ref());
 
@@ -120,6 +123,60 @@ async fn put_orders(db: web::Data<Pool>, order: web::Json<Order>, req: web::Http
 
 	let mut order = order.into_inner();
 	order.id = insert_id as u32;
+
+	Ok(web::Json(order))
+}
+
+async fn set_order_as_done(db: web::Data<Pool>, web::Path(id): web::Path<u32>) -> Result<impl Responder, Error> {
+	let mut tx = db.get_ref()
+		.begin()
+		.await
+		.map_err(Error::from)?;
+
+	sqlx::query!(
+		"UPDATE orders SET done=true WHERE id=?",
+		id
+	).execute(&mut tx).await
+    .map_err(Error::from)?;
+
+	let mut order_cart_stream = sqlx::query!(
+		"SELECT o.id,o.owner,o.owner_name,o.first_term as `first_term: bool`,c.item,c.quantity
+		 FROM orders AS o INNER JOIN carts AS c
+		 ON o.id=c.order
+		 WHERE o.id=?",
+		id
+	).fetch(&mut tx);
+
+	let mut order = {
+		let first = order_cart_stream.next().await.ok_or(
+			Error::Static {
+				status: actix_web::http::StatusCode::BAD_REQUEST,
+				reason: "Database",
+				message: "The requested resource does not exist"
+			}
+		)??;
+
+		Order {
+			id: first.id,
+			owner: first.owner,
+			owner_name: first.owner_name,
+			first_term: first.first_term,
+			cart: vec![(first.item, first.quantity)]
+		}
+	};
+
+	//Code edited from stream_to_vec!
+	while let Some(item) = order_cart_stream.next().await {
+		let item = item?;
+		order.cart_mut().push(
+			(item.item, item.quantity)
+		);
+	}
+
+	/*We drop the stream that holds a reference to the transaction
+	  otherwise, we wouldn't be able to commit*/
+	drop(order_cart_stream);
+	tx.commit().await.map_err(Error::from)?;
 
 	Ok(web::Json(order))
 }
