@@ -113,16 +113,6 @@
       "nullable": []
     }
   },
-  "656ce939c815870cb493f9e8d9625c4634517f1a353aa9c6f8a549c36b9549c8": {
-    "query": "INSERT INTO orders(owner, owner_name) VALUES (?, ?)",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Right": 2
-      },
-      "nullable": []
-    }
-  },
   "72b226d0c4b6d2918e591771a44eb2decbe8672328bd8193454a4a4191561efa": {
     "query": "DELETE FROM products WHERE id = ?",
     "describe": {
@@ -384,6 +374,16 @@
       "nullable": [
         false
       ]
+    }
+  },
+  "bcfc6ef51bf7c8377ec3d52dc03ce0c0ab223033eb795955dad067d7d0c2ab6b": {
+    "query": "INSERT INTO orders(owner, owner_name, first_term) VALUES (?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 3
+      },
+      "nullable": []
     }
   },
   "f047386ebc12b1f31b7872129b96e173a17a12f5ff09d6bcd8ecaa7bcae338bb": {
