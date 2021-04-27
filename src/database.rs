@@ -19,24 +19,13 @@ pub async fn get_database(db_url: &str)->Result<(Pool, oneshot::Sender<()>), Err
 	crate::MIGRATOR.run(&mut transaction).await?;
 	transaction.commit().await?;
 
-	/*Check last order list addition,
-		truncate if older than a day
-	  Return truncator future*/
-	let latest_insertion = sqlx::query!(
-		"SELECT day FROM orders ORDER BY id DESC LIMIT 1"
-	).fetch_one(&conn).await;
-
-	/*Wipe the orders table if the latest insertion
-	 *has been done before today*/
-	match latest_insertion {
-		Ok(row) => {
-			if row.day.date() < Local::today().with_timezone(&chrono::Utc) {
-				delete_data(&conn).await?;
-			}
-		},
-		Err(Error::RowNotFound) => (),
-		Err(error) => return Err(error)
-	}
+	/*Delete every order that's been made before today*/
+	sqlx::query!(
+		"DELETE FROM orders WHERE day < ?",
+		Local::today()
+			.and_hms(0, 0, 0)
+			.with_timezone(&chrono::Utc)
+	).execute(&conn).await?;
 
 	let (routine_stopper, recv) = oneshot::channel::<()>();
 	{
