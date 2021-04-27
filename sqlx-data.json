@@ -426,6 +426,16 @@
       ]
     }
   },
+  "91e97850693a76ff4c0ada6ac5c7c5487188fa74e2dd23cc7b3cfcb80db77426": {
+    "query": "DELETE FROM orders WHERE day < ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  },
   "a81be4760be1d80767769a279d018616380813b2fbe0c1b6db910e119f5f3f2f": {
     "query": "SELECT COUNT(*) as count FROM products",
     "describe": {
@@ -440,31 +450,6 @@
             },
             "char_set": 63,
             "max_size": 21
-          }
-        }
-      ],
-      "parameters": {
-        "Right": 0
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
-  "bb4d3a7d89c9bb51421762eee42040db3c337e22e3402e6561db1b3ce8bfa173": {
-    "query": "SELECT day FROM orders ORDER BY id DESC LIMIT 1",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "day",
-          "type_info": {
-            "type": "Timestamp",
-            "flags": {
-              "bits": 1185
-            },
-            "char_set": 63,
-            "max_size": 19
           }
         }
       ],

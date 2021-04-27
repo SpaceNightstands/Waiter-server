@@ -50,6 +50,7 @@ pub async fn get_database(db_url: &str)->Result<(Pool, oneshot::Sender<()>), Err
 	Ok((conn, routine_stopper))
 }
 
+//TODO: Review these queries
 #[inline]
 async fn delete_data(db: &Pool) -> Result<(), Error> {
 	//Wipe orders and reset the auto incrementing index to 1
