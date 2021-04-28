@@ -67,11 +67,13 @@ async fn main() -> std::io::Result<()> {
 
 	//Admins are the only google accounts able to edit the menu
 	let admins = env_var("ADMINS")
+    .ok()
     .map(
 			|string| string.split(',')
 				.map(String::from)
 				.collect::<std::collections::HashSet<String>>()
-		).ok();
+		);
+	log::info!("Admins: {:?}", admins);
 
 	let server = {
 		let (key_ref, admins_ref, cache_ref) = unsafe {
@@ -83,6 +85,7 @@ async fn main() -> std::io::Result<()> {
 				SharedPointer::new(&*cache)
 			)
 		};
+
 		HttpServer::new(move || {
 			//Middleware is executed in reverse registration order
 			App::new()
@@ -92,7 +95,7 @@ async fn main() -> std::io::Result<()> {
 						.error_handler(
 							|err, _| error::Error::passthrough(
 								actix_web::http::StatusCode::BAD_REQUEST,
-								"JsonExtractor",
+								"JsonDeserializer",
 								&err
 							).into()
 						)
@@ -107,8 +110,8 @@ async fn main() -> std::io::Result<()> {
 	}.bind(
 		format!(
 			"{}:{}",
-			env_var("SERVER_ADDRESS").unwrap_or("0.0.0.0".to_string()),
-			env_var("SERVER_PORT").unwrap_or("8080".to_string()),
+			env_var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
+			env_var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string()),
 		)
 	)?.disable_signals()
 		.run();

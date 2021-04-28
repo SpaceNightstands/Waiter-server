@@ -69,6 +69,7 @@ where
 		match subject {
 			Some(sub) => {
 				//If the id is authorized, pass the call
+				log::debug!("[SubFilter] Subject: {}", sub);
 				if self.authorized.contains(sub) {
 					std::mem::drop(ext);
 					return Box::pin(self.service.call(req))
