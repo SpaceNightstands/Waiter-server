@@ -1,8 +1,8 @@
-mod model;
 mod api;
-mod middleware;
-mod error;
 mod database;
+mod error;
+mod middleware;
+mod model;
 mod pointer;
 mod signals;
 
@@ -14,17 +14,13 @@ type Pool = test::Pool;
 #[cfg(test)]
 mod test;
 
-use std::env::var as env_var;
-use hmac::NewMac;
-use actix_web::{
-	HttpServer,
-	App,
-	middleware as actix_midware
-};
+use actix_web::{middleware as actix_midware, App, HttpServer};
 use api::*;
-use middleware::*;
 use futures::future::FutureExt;
+use hmac::NewMac;
+use middleware::*;
 use pointer::SharedPointer;
+use std::env::var as env_var;
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
 
@@ -39,50 +35,48 @@ async fn main() -> std::io::Result<()> {
 	//Enable Logging
 	//TODO: Improve logging
 	simple_logger::SimpleLogger::new()
-    .with_level(log::LevelFilter::Debug)
+		.with_level(log::LevelFilter::Debug)
 		.init()
 		.expect("Couldn't set logger");
 
 	//Create Database Connection and get cleaning routine future
 	log::debug!("Connecting to Database...");
 	let (conn, database_stopper) = database::get_database(
-		&*env_var("DATABASE_URL")
-			.expect("Environment variable DATABASE_URL not set"),
-	).await
-		.expect("Couldn't connect to database");
+		&*env_var("DATABASE_URL").expect("Environment variable DATABASE_URL not set"),
+	)
+	.await
+	.expect("Couldn't connect to database");
 
 	//Create Cache and get clearing routine future
 	let (cache, cache_stopper) = cache::make_impedency_cache().await;
 
 	//For host guard
 	/*let host = env_var("HOST")
-    .expect("Environment variable HOST not set");*/
+	.expect("Environment variable HOST not set");*/
 
 	//Create JWT Key
 	let key = auth::Key::new_varkey(
 		env_var("JWT_SECRET")
 			.expect("Environment variable DATABASE_URL not set")
-			.as_bytes()
-	).unwrap();
+			.as_bytes(),
+	)
+	.unwrap();
 
 	//Admins are the only google accounts able to edit the menu
-	let admins = env_var("ADMINS")
-    .ok()
-    .map(
-			|string| string.split(',')
-				.map(String::from)
-				.collect::<std::collections::HashSet<String>>()
-		);
+	let admins = env_var("ADMINS").ok().map(|string| {
+		string
+			.split(',')
+			.map(String::from)
+			.collect::<std::collections::HashSet<String>>()
+	});
 	log::info!("Admins: {:?}", admins);
 
 	let server = {
 		let (key_ref, admins_ref, cache_ref) = unsafe {
 			(
 				SharedPointer::new(&key),
-				admins.as_ref().map(
-					|admins| SharedPointer::new(admins)
-				),
-				SharedPointer::new(&*cache)
+				admins.as_ref().map(|admins| SharedPointer::new(admins)),
+				SharedPointer::new(&*cache),
 			)
 		};
 
@@ -92,36 +86,38 @@ async fn main() -> std::io::Result<()> {
 				.app_data(
 					actix_web::web::JsonConfig::default()
 						.limit(2621440) //2.5 MiB
-						.error_handler(
-							|err, _| error::Error::passthrough(
+						.error_handler(|err, _| {
+							error::Error::passthrough(
 								actix_web::http::StatusCode::BAD_REQUEST,
 								"JsonDeserializer",
-								&err
-							).into()
-						)
-				).data(conn.clone())
-				 .wrap(cache::IdempotencyCache(cache_ref))
-				 .wrap(auth::JWTAuth(key_ref))
-				 .wrap(actix_cors::Cors::permissive())
-				 .wrap(actix_midware::Logger::default())
-				 .service(menu::get_service(admins_ref))
-				 .service(order::get_service(admins_ref))
+								&err,
+							)
+							.into()
+						}),
+				)
+				.data(conn.clone())
+				.wrap(cache::IdempotencyCache(cache_ref))
+				.wrap(auth::JWTAuth(key_ref))
+				.wrap(actix_cors::Cors::permissive())
+				.wrap(actix_midware::Logger::default())
+				.service(menu::get_service(admins_ref))
+				.service(order::get_service(admins_ref))
 		})
-	}.bind(
-		format!(
-			"{}:{}",
-			env_var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
-			env_var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string()),
-		)
-	)?.disable_signals()
-		.run();
+	}
+	.bind(format!(
+		"{}:{}",
+		env_var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
+		env_var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string()),
+	))?
+	.disable_signals()
+	.run();
 
 	signals::handle_kill_signals(server.clone(), database_stopper, cache_stopper);
 
 	//We explicitly drop the values that were needed by the server
 	drop(admins);
 	drop(key);
-	/*We can't drop cache as the cache_stopper does not notify us when the 
+	/*We can't drop cache as the cache_stopper does not notify us when the
 	 *task has actually stopped*/
 	//drop(cache);
 
@@ -138,7 +134,8 @@ fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = b
 		//Get today
 		let before_waiting = Local::today();
 		//Get tomorrow and add 0:0:0 as hours, minutes and seconds respectively
-		let time_until_midnight = before_waiting.succ()
+		let time_until_midnight = before_waiting
+			.succ()
 			//TODO: Use and_hms_opt instead, handle errors
 			.and_hms(0, 0, 0)
 			//Get the duration between midnight and now
@@ -150,6 +147,6 @@ fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = b
 		rt::time::delay_for(time_until_midnight).await;
 		//Return if it's actually past midnight
 		Local::today() > before_waiting
-	}.fuse()
+	}
+	.fuse()
 }
-

@@ -1,49 +1,39 @@
-use std::{
-	fmt::Debug,
-	pin::Pin
-};
-use serde::{Serialize, Deserialize};
-use sqlx::{
-	FromRow,
-	Type
-};
 use derive_getters::Getters;
+use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, Type};
+use std::{fmt::Debug, pin::Pin};
 
 #[derive(Serialize, Deserialize, Type, Debug, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all="lowercase")]
-#[sqlx(rename_all="lowercase")]
+#[serde(rename_all = "lowercase")]
+#[sqlx(rename_all = "lowercase")]
 pub enum ProductKind {
 	Available,
 	Orderable,
-	Beverage
+	Beverage,
 }
 
 #[derive(Serialize, Deserialize, Getters, FromRow, Debug, PartialEq, Eq)]
 pub struct Product {
 	#[serde(default)]
 	pub(crate) id: u32,
-	pub(crate) kind: ProductKind, 
+	pub(crate) kind: ProductKind,
 	pub(crate) name: String,
-	pub(crate) price: u16, 
+	pub(crate) price: u16,
 	pub(crate) max_num: u8,
 	pub(crate) ingredients: Option<String>,
 	#[serde(with = "image_from_base64")]
-	pub(crate) image: Vec<u8> 
+	pub(crate) image: Vec<u8>,
 }
 
 mod image_from_base64 {
-	use serde::{
-		Serializer,
-		Deserializer
-	};
-	use base64_stream::{
-		FromBase64Reader as Decoder,
-		ToBase64Reader as Encoder
-	};
+	use base64_stream::{FromBase64Reader as Decoder, ToBase64Reader as Encoder};
+	use serde::{Deserializer, Serializer};
 	use std::io::Read;
 
 	pub(super) fn serialize<S>(image: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
-	where S: Serializer {
+	where
+		S: Serializer,
+	{
 		use serde::ser::Error;
 
 		//This capacity is not enough, but will avoid allocations for much of the conversion.
@@ -56,7 +46,9 @@ mod image_from_base64 {
 	}
 
 	pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-	where D: Deserializer<'de> {
+	where
+		D: Deserializer<'de>,
+	{
 		use serde::de::Error;
 
 		let base64: &'de str = serde::Deserialize::deserialize(deserializer)?;
@@ -99,4 +91,3 @@ mod error {
 		}
 	}
 }
-

@@ -1,20 +1,18 @@
-use std::pin::Pin;
-use std::marker::PhantomPinned;
 use std::fmt::Debug;
+use std::marker::PhantomPinned;
+use std::pin::Pin;
 
 pub struct SharedPointer<T> {
 	pointer: *const T,
-	_pin: PhantomPinned
+	_pin: PhantomPinned,
 }
 
 impl<T> SharedPointer<T> {
-	pub(crate) unsafe fn new(pointer: &T) -> Pin<Self>{
-		Pin::new_unchecked(
-			SharedPointer {
-				pointer: pointer as *const T,
-				_pin: PhantomPinned
-			}
-		)
+	pub(crate) unsafe fn new(pointer: &T) -> Pin<Self> {
+		Pin::new_unchecked(SharedPointer {
+			pointer: pointer as *const T,
+			_pin: PhantomPinned,
+		})
 	}
 
 	#[cfg(test)]
@@ -26,9 +24,7 @@ impl<T> SharedPointer<T> {
 impl<T> std::ops::Deref for SharedPointer<T> {
 	type Target = T;
 	fn deref<'ret>(&'ret self) -> &'ret Self::Target {
-		unsafe {
-			&*self.pointer
-		}
+		unsafe { &*self.pointer }
 	}
 }
 
@@ -36,7 +32,7 @@ impl<T> std::clone::Clone for SharedPointer<T> {
 	fn clone(&self) -> Self {
 		Self {
 			pointer: self.pointer,
-			_pin: PhantomPinned
+			_pin: PhantomPinned,
 		}
 	}
 }
@@ -55,21 +51,17 @@ impl<T: Debug> Debug for SharedPointer<T> {
 #[test]
 fn shared_pointer_single_threaded_test() {
 	let owned = String::from("test");
-	let shared = unsafe {
-		SharedPointer::new(&owned)
-	};
+	let shared = unsafe { SharedPointer::new(&owned) };
 	assert_eq!(&*shared, "test");
 }
 
 #[test]
 fn shared_pointer_multithreaded_test() {
 	let owned = String::from("Test");
-	let shared = unsafe{
-		SharedPointer::new(&owned)
-	};
-	let is_equal = std::thread::spawn(move || {
-		&*shared == "Test"
-	}).join().unwrap();
+	let shared = unsafe { SharedPointer::new(&owned) };
+	let is_equal = std::thread::spawn(move || &*shared == "Test")
+		.join()
+		.unwrap();
 	assert!(is_equal);
 }
 
@@ -87,8 +79,6 @@ fn box_and_ref_test() {
 #[cfg(test)]
 fn get_box_and_ref() -> (Box<String>, Pin<SharedPointer<String>>) {
 	let owned = Box::new(String::from("Test"));
-	let shared = unsafe{
-		SharedPointer::new(&*owned)
-	};
+	let shared = unsafe { SharedPointer::new(&*owned) };
 	(owned, shared)
 }

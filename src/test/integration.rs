@@ -1,15 +1,7 @@
-use crate::{
-	model::*,
-	middleware::*,
-	api::*,
-	pointer::SharedPointer
-};
-use actix_web::{
-	test,
-	dev::Service
-};
-use sqlx::types::chrono;
+use crate::{api::*, middleware::*, model::*, pointer::SharedPointer};
+use actix_web::{dev::Service, test};
 use jwt::SignWithKey;
+use sqlx::types::chrono;
 
 #[actix_rt::test]
 pub(super) async fn integration_test() {
@@ -25,7 +17,7 @@ pub(super) async fn integration_test() {
 			(
 				SharedPointer::new(&super::JWT_KEY),
 				SharedPointer::new(&filter),
-				SharedPointer::new(&cache)
+				SharedPointer::new(&cache),
 			)
 		};
 		test::init_service(
@@ -35,9 +27,10 @@ pub(super) async fn integration_test() {
 				.wrap(auth::JWTAuth(key_ref))
 				.wrap(actix_web::middleware::Logger::default())
 				.service(menu::get_service(Some(filter_ref)))
-				.service(order::get_service(Some(filter_ref)))
+				.service(order::get_service(Some(filter_ref))),
 		)
-	}.await;
+	}
+	.await;
 
 	//Common JWT exp attribute
 	let common_expiry = chrono::Utc::today()
@@ -52,33 +45,26 @@ pub(super) async fn integration_test() {
 		let auth = auth::AuthToken {
 			sub: "test".to_string(),
 			exp: common_expiry.clone(),
-			idempotency: "test0".to_string()
-		}.sign_with_key(&super::JWT_KEY).unwrap();
+			idempotency: "test0".to_string(),
+		}
+		.sign_with_key(&super::JWT_KEY)
+		.unwrap();
 		let auth = format!("Bearer {}", auth);
 
 		let req = test::TestRequest::get()
 			.uri("/order")
-			.header(
-				actix_web::http::header::AUTHORIZATION,
-				auth.clone()
-			).to_request();
-		let resp: Vec<Order> = test::read_body_json(
-			service.call(req).await.unwrap()
-		).await;
+			.header(actix_web::http::header::AUTHORIZATION, auth.clone())
+			.to_request();
+		let resp: Vec<Order> = test::read_body_json(service.call(req).await.unwrap()).await;
 		assert_eq!(resp.len(), 1);
 
 		let req = test::TestRequest::get()
 			.uri("/order")
-			.header(
-				actix_web::http::header::AUTHORIZATION,
-				auth
-			).to_request();
-		let resp = service.call(req).await
-			.err()
-			.unwrap();
+			.header(actix_web::http::header::AUTHORIZATION, auth)
+			.to_request();
+		let resp = service.call(req).await.err().unwrap();
 		//Unwrap panics if the response is not an error
-		resp.as_error::<crate::error::Error>()
-			.unwrap();
+		resp.as_error::<crate::error::Error>().unwrap();
 		//TODO: maybe add an assertion?
 	}
 
@@ -89,17 +75,18 @@ pub(super) async fn integration_test() {
 		let auth = auth::AuthToken {
 			sub: "admin".to_string(),
 			exp: common_expiry.clone(),
-			idempotency: "test1".to_string()
-		}.sign_with_key(&key).unwrap();
+			idempotency: "test1".to_string(),
+		}
+		.sign_with_key(&key)
+		.unwrap();
 		let req = test::TestRequest::get()
 			.uri("/order")
 			.header(
 				actix_web::http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
-			).to_request();
-		let resp: Vec<Order> = test::read_body_json(
-			service.call(req).await.unwrap()
-		).await;
+				format!("Bearer {}", auth),
+			)
+			.to_request();
+		let resp: Vec<Order> = test::read_body_json(service.call(req).await.unwrap()).await;
 		/*What has been added by subject "test" should not be
 		 *visible to admin, therefore the length of this array should
 		 *be 0 to indicate the lack of orders made by "admin"*/
@@ -108,22 +95,23 @@ pub(super) async fn integration_test() {
 		let auth = auth::AuthToken {
 			sub: "test".to_string(),
 			exp: common_expiry.clone(),
-			idempotency: "test2".to_string()
-		}.sign_with_key(&key).unwrap();
+			idempotency: "test2".to_string(),
+		}
+		.sign_with_key(&key)
+		.unwrap();
 		let req = test::TestRequest::get()
 			.uri("/order")
 			.header(
 				actix_web::http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
-			).to_request();
-		let resp: Vec<Order> = test::read_body_json(
-			service.call(req).await.unwrap()
-		).await;
+				format!("Bearer {}", auth),
+			)
+			.to_request();
+		let resp: Vec<Order> = test::read_body_json(service.call(req).await.unwrap()).await;
 		assert_eq!(resp.len(), 1);
 	}
 
 	/*Testing subject filter by sending a request
-	 *to one of the protected endpoints with an 
+	 *to one of the protected endpoints with an
 	 *unauthorized subject value first and with
 	 *an authorized one afterwards*/
 	{
@@ -134,22 +122,27 @@ pub(super) async fn integration_test() {
 			price: 100,
 			max_num: 3,
 			ingredients: None,
-			image: vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+			image: vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
 		};
 
 		let auth = auth::AuthToken {
 			sub: "test".to_string(),
 			exp: common_expiry.clone(),
-			idempotency: "test3".to_string()
-		}.sign_with_key(&key).unwrap();
+			idempotency: "test3".to_string(),
+		}
+		.sign_with_key(&key)
+		.unwrap();
 		let req = test::TestRequest::put()
 			.uri("/menu")
 			.header(
 				actix_web::http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
-			).set_json(&prod)
+				format!("Bearer {}", auth),
+			)
+			.set_json(&prod)
 			.to_request();
-		let resp = service.call(req).await
+		let resp = service
+			.call(req)
+			.await
 			//Expecting an error here, "test" isn't authorized
 			.err()
 			.unwrap();
@@ -158,18 +151,19 @@ pub(super) async fn integration_test() {
 		let auth = auth::AuthToken {
 			sub: "admin".to_string(),
 			exp: common_expiry.clone(),
-			idempotency: "test4".to_string()
-		}.sign_with_key(&key).unwrap();
+			idempotency: "test4".to_string(),
+		}
+		.sign_with_key(&key)
+		.unwrap();
 		let req = test::TestRequest::put()
 			.uri("/menu")
 			.header(
 				actix_web::http::header::AUTHORIZATION,
-				format!("Bearer {}", auth)
-			).set_json(&prod)
+				format!("Bearer {}", auth),
+			)
+			.set_json(&prod)
 			.to_request();
-		let resp: Product = test::read_body_json(
-			service.call(req).await.unwrap()
-		).await;
+		let resp: Product = test::read_body_json(service.call(req).await.unwrap()).await;
 		assert_eq!(resp, prod);
 	}
 }

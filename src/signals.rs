@@ -1,34 +1,28 @@
 use actix_web::dev::Server;
-use actix_web::rt::{
-	spawn,
-	signal
-};
-use futures::{
-	future::FutureExt,
-	channel::oneshot::Sender
-};
+use actix_web::rt::{signal, spawn};
+use futures::{channel::oneshot::Sender, future::FutureExt};
 
 #[cfg(not(unix))]
-pub(super) fn handle_kill_signals(server: Server, database_stopper: Sender<()>, cache_stopper: Sender<()>){
-	spawn(
-		signal::ctrl_c()
-			.then(
-				|_| async move {
-					log::debug!("Received Ctrl-C");
-					stopper(server, database_stopper, cache_stopper).await
-				}
-			)
-	);
+pub(super) fn handle_kill_signals(
+	server: Server,
+	database_stopper: Sender<()>,
+	cache_stopper: Sender<()>,
+) {
+	spawn(signal::ctrl_c().then(|_| async move {
+		log::debug!("Received Ctrl-C");
+		stopper(server, database_stopper, cache_stopper).await
+	}));
 }
 
 #[cfg(unix)]
-pub(super) fn handle_kill_signals(server: Server, database_stopper: Sender<()>, cache_stopper: Sender<()>){
+pub(super) fn handle_kill_signals(
+	server: Server,
+	database_stopper: Sender<()>,
+	cache_stopper: Sender<()>,
+) {
 	/*On *nix register a listener for every terminating
 	 *signal*/
-	use signal::unix::{
-		self,
-		SignalKind
-	};
+	use signal::unix::{self, SignalKind};
 	use std::task::Poll;
 
 	let mut signals = Vec::new();
@@ -41,31 +35,25 @@ pub(super) fn handle_kill_signals(server: Server, database_stopper: Sender<()>, 
 	for kind in signal_list.iter() {
 		match unix::signal(*kind) {
 			Ok(stream) => signals.push(stream),
-			Err(e) => if log::log_enabled!(log::Level::Error) {
-				log::error!(
-					"Cannot initialize stream handler for {:?} err: {}",
-					kind, e
-				)
+			Err(e) => {
+				if log::log_enabled!(log::Level::Error) {
+					log::error!("Cannot initialize stream handler for {:?} err: {}", kind, e)
+				}
 			}
 		}
 	}
 
 	//Poll every stream and stop everything if any signal is received
 	spawn(
-		futures::future::poll_fn(
-			move |ctx|{
-				for sig in signals.iter_mut() {
-					if let Poll::Ready(Some(())) = sig.poll_recv(ctx) {
-						return Poll::Ready(())
-					}
+		futures::future::poll_fn(move |ctx| {
+			for sig in signals.iter_mut() {
+				if let Poll::Ready(Some(())) = sig.poll_recv(ctx) {
+					return Poll::Ready(());
 				}
-				Poll::Pending
 			}
-		).then(
-			|_| async move {
-				stopper(server, database_stopper, cache_stopper).await
-			}
-		)
+			Poll::Pending
+		})
+		.then(|_| async move { stopper(server, database_stopper, cache_stopper).await }),
 	)
 }
 
