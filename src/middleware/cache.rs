@@ -1,44 +1,37 @@
 use super::{auth::AuthToken, prelude::*};
 use actix_web::rt;
-use futures::{channel::oneshot, future::FutureExt};
+use futures::future::FutureExt;
 
 //use SharedPointer
 type Cache = dashmap::DashSet<String>;
 pub type CachePointer = Pin<SharedPointer<Cache>>;
 
-pub async fn make_impedency_cache() -> (Box<Cache>, oneshot::Sender<()>) {
+pub async fn make_impedency_cache() -> (Box<Cache>, rt::task::JoinHandle<()>) {
 	//use Box instead of Arc and use SharedPointer as reference
 	let cache = Box::new(Cache::new());
 	//Wipe the idempotency cache everyday
-	let (routine_stopper, recv) = oneshot::channel::<()>();
-	{
+	let cache_handle = {
 		let cache = unsafe { SharedPointer::new(&*cache) };
 		rt::spawn(async move {
 			log::debug!("Scheduled Cache clearer");
-			let mut recv = recv.fuse();
 			loop {
-				futures::select_biased! {
-					_ = recv => break,
-					is_past_midnight = crate::until_midnight() => if is_past_midnight {
-						cache.clear();
-						cache.shrink_to_fit();
-					}
+				if crate::until_midnight().await {
+					cache.clear();
+					cache.shrink_to_fit();
 				}
 			}
 		})
 	};
-	(cache, routine_stopper)
+	(cache, cache_handle)
 }
 
 pub struct IdempotencyCache(pub CachePointer);
 
-impl<S> dev::Transform<S> for IdempotencyCache
+impl<S> dev::Transform<S, ServiceRequest> for IdempotencyCache
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<dev::Body>, Error = AxError>,
+	S: Service<ServiceRequest, Response = ServiceResponse<dev::Body>, Error = AxError>,
 	S::Future: 'static,
 {
-	type Request = S::Request;
-
 	type Response = S::Response;
 
 	type Error = S::Error;
@@ -57,18 +50,16 @@ where
 	}
 }
 
-pub struct IdempotencyCacheService<S: Service> {
+pub struct IdempotencyCacheService<S: Service<ServiceRequest>> {
 	service: S,
 	cache: CachePointer,
 }
 
-impl<S> Service for IdempotencyCacheService<S>
+impl<S> Service<ServiceRequest> for IdempotencyCacheService<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<dev::Body>, Error = AxError>,
+	S: Service<ServiceRequest, Response = ServiceResponse<dev::Body>, Error = AxError>,
 	S::Future: 'static,
 {
-	type Request = S::Request;
-
 	type Response = S::Response;
 
 	type Error = S::Error;
@@ -77,13 +68,12 @@ where
 	type Future = future::LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
 	fn poll_ready(
-		&mut self,
-		ctx: &mut std::task::Context<'_>,
+		&self, ctx: &mut std::task::Context<'_>,
 	) -> std::task::Poll<Result<(), Self::Error>> {
 		self.service.poll_ready(ctx)
 	}
 
-	fn call(&mut self, req: Self::Request) -> Self::Future {
+	fn call(&self, req: ServiceRequest) -> Self::Future {
 		if req.method().is_safe() || !req.method().is_idempotent() {
 			return Box::pin(self.service.call(req));
 		}
@@ -103,16 +93,21 @@ where
 					 *we have to drop the references before using into_parts*/
 					drop(idempotency);
 					drop(ext);
-					Box::pin(future::ok(ServiceResponse::new(
-						req.into_parts().0,
-						"Already responded to this token".into(),
-					)))
+					Box::pin(future::err(
+						Error::Static {
+							status: StatusCode::OK,
+							reason: "IdempotencyCache",
+							message: "Request already responded",
+						}
+						.into(),
+					))
 				} else {
 					/*Otherwise, create a future that will add the token
 					 *to the cache after having responded to the request*/
 					let cache = self.cache.clone();
 					let idempotency = idempotency.clone();
 					std::mem::drop(ext);
+					//TODO: Read Body and cache it
 					Box::pin(self.service.call(req).map(move |result| {
 						cache.insert(idempotency);
 						result

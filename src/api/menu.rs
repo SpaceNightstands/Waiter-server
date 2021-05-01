@@ -65,10 +65,9 @@ async fn put_menu(db: web::Data<Pool>, prod: web::Json<Product>) -> Result<impl 
 	Ok(web::Json(product))
 }
 
-async fn delete_menu(
-	db: web::Data<Pool>,
-	web::Path(id): web::Path<u32>,
-) -> Result<impl Responder, Error> {
+async fn delete_menu(db: web::Data<Pool>, id: web::Path<u32>) -> Result<impl Responder, Error> {
+	let id = id.into_inner();
+
 	log::debug!("Deleting Product {} from product list", id);
 	let mut tx = db.get_ref().begin().await.map_err(Error::from)?;
 

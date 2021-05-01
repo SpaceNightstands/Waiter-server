@@ -1,12 +1,11 @@
 use super::Pool;
 use actix_web::rt;
-use futures::{channel::oneshot, future::FutureExt};
 use sqlx::{
 	types::chrono::{self, Local},
 	Error,
 };
 
-pub async fn get_database(db_url: &str) -> Result<(Pool, oneshot::Sender<()>), Error> {
+pub async fn get_database(db_url: &str) -> Result<(Pool, rt::task::JoinHandle<()>), Error> {
 	let conn = Pool::connect(db_url).await?;
 
 	let mut transaction = conn.begin().await?;
@@ -21,25 +20,19 @@ pub async fn get_database(db_url: &str) -> Result<(Pool, oneshot::Sender<()>), E
 	.execute(&conn)
 	.await?;
 
-	let (routine_stopper, recv) = oneshot::channel::<()>();
-	{
+	let database_handle = {
 		let conn = conn.clone();
 		rt::spawn(async move {
 			log::debug!("Scheduled Database wiper");
-			let mut recv = recv.fuse();
 			loop {
-				//Wipe the orders table everyday
-				futures::select_biased! {
-					_ = recv => break,
-					is_past_midnight = crate::until_midnight() => if is_past_midnight {
-						log::debug!("Truncating Database");
-						delete_data(&conn).await.unwrap();
-					}
+				if crate::until_midnight().await {
+					log::debug!("Truncating Database");
+					delete_data(&conn).await.unwrap();
 				}
 			}
-		});
+		})
 	};
-	Ok((conn, routine_stopper))
+	Ok((conn, database_handle))
 }
 
 //TODO: Review these queries

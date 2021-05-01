@@ -1,12 +1,12 @@
 use actix_web::dev::Server;
 use actix_web::rt::{signal, spawn};
-use futures::{channel::oneshot::Sender, future::FutureExt};
+use futures::future::FutureExt;
+
+type JoinHandle = actix_web::rt::task::JoinHandle<()>;
 
 #[cfg(not(unix))]
 pub(super) fn handle_kill_signals(
-	server: Server,
-	database_stopper: Sender<()>,
-	cache_stopper: Sender<()>,
+	server: Server, database_stopper: JoinHandle, cache_stopper: JoinHandle,
 ) {
 	spawn(signal::ctrl_c().then(|_| async move {
 		log::debug!("Received Ctrl-C");
@@ -16,9 +16,7 @@ pub(super) fn handle_kill_signals(
 
 #[cfg(unix)]
 pub(super) fn handle_kill_signals(
-	server: Server,
-	database_stopper: Sender<()>,
-	cache_stopper: Sender<()>,
+	server: Server, database_stopper: JoinHandle, cache_stopper: JoinHandle,
 ) {
 	/*On *nix register a listener for every terminating
 	 *signal*/
@@ -54,13 +52,12 @@ pub(super) fn handle_kill_signals(
 			Poll::Pending
 		})
 		.then(|_| async move { stopper(server, database_stopper, cache_stopper).await }),
-	)
+	);
 }
 
 #[inline]
-async fn stopper(server: Server, database: Sender<()>, cache: Sender<()>) {
+async fn stopper(server: Server, database: JoinHandle, cache: JoinHandle) {
 	server.stop(true).await;
-	//TODO: Replace with blocking channels
-	database.send(()).unwrap();
-	cache.send(()).unwrap();
+	database.abort();
+	cache.abort();
 }

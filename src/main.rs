@@ -129,7 +129,6 @@ fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = b
 		//Get tomorrow and add 0:0:0 as hours, minutes and seconds respectively
 		let time_until_midnight = before_waiting
 			.succ()
-			//TODO: Use and_hms_opt instead, handle errors
 			.and_hms(0, 0, 0)
 			//Get the duration between midnight and now
 			.signed_duration_since(Local::now())
@@ -137,7 +136,7 @@ fn until_midnight() -> futures::future::Fuse<impl std::future::Future<Output = b
 			//TODO: Handle error better
 			.unwrap();
 		//Tell the runtime that this future has to wait until midnight
-		rt::time::delay_for(time_until_midnight).await;
+		rt::time::sleep(time_until_midnight).await;
 		//Return if it's actually past midnight
 		Local::today() > before_waiting
 	}

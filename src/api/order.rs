@@ -80,9 +80,7 @@ async fn get_all_orders(db: web::Data<Pool>) -> Result<impl Responder, Error> {
 }
 
 async fn put_orders(
-	db: web::Data<Pool>,
-	order: web::Json<Order>,
-	req: web::HttpRequest,
+	db: web::Data<Pool>, order: web::Json<Order>, req: web::HttpRequest,
 ) -> Result<impl Responder, Error> {
 	let owner = req.extensions();
 	let owner = get_auth_token(&owner)?;
@@ -130,9 +128,10 @@ async fn put_orders(
 }
 
 async fn set_order_as_done(
-	db: web::Data<Pool>,
-	web::Path(id): web::Path<u32>,
+	db: web::Data<Pool>, id: web::Path<u32>,
 ) -> Result<impl Responder, Error> {
+	let id = id.into_inner();
+
 	let mut tx = db.get_ref().begin().await.map_err(Error::from)?;
 
 	sqlx::query!("UPDATE orders SET done=true WHERE id=?", id)

@@ -1,6 +1,8 @@
 use actix_web::{
+	body::Body,
 	error::ResponseError,
 	http::{header::ToStrError as HeaderError, StatusCode},
+	BaseHttpResponse,
 };
 use std::{convert::From, fmt::Display};
 
@@ -26,9 +28,7 @@ pub(crate) enum Error {
 
 impl Error {
 	pub(crate) fn passthrough<T: std::error::Error>(
-		status: StatusCode,
-		reason: &'static str,
-		message: &T,
+		status: StatusCode, reason: &'static str, message: &T,
 	) -> Error {
 		Error::Passthrough {
 			status,
@@ -87,7 +87,7 @@ impl ResponseError for Error {
 		}
 	}
 
-	fn error_response(&self) -> actix_web::HttpResponse {
+	fn error_response(&self) -> BaseHttpResponse<Body> {
 		use log::{error, log_enabled, Level};
 		if log_enabled!(Level::Error) {
 			match self {
@@ -99,11 +99,12 @@ impl ResponseError for Error {
 				} => error!("[{}] {}", reason, message),
 			}
 		}
-		actix_web::HttpResponse::build(self.status_code())
-			.set_header(
-				actix_web::http::header::CONTENT_TYPE,
-				actix_web::http::HeaderValue::from_static("application/json; charset=utf-8"),
-			)
-			.json(self)
+
+		//TODO: Change default error message
+		let json = serde_json::to_string(self).unwrap_or(String::from("Error serializing error"));
+
+		actix_web::BaseHttpResponse::build(self.status_code())
+			.content_type(actix_web::http::header::ContentType::json())
+			.body(json)
 	}
 }

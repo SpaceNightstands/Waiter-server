@@ -4,14 +4,12 @@ pub(crate) type SubList = Pin<SharedPointer<std::collections::HashSet<String>>>;
 
 pub(crate) struct SubjectFilter(pub SubList);
 
-impl<S, B> dev::Transform<S> for SubjectFilter
+impl<S, B> dev::Transform<S, ServiceRequest> for SubjectFilter
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static,
 {
-	type Request = S::Request;
-
 	type Response = S::Response;
 
 	type Error = S::Error;
@@ -30,19 +28,17 @@ where
 	}
 }
 
-pub struct SubjectFilterService<S: Service> {
+pub struct SubjectFilterService<S: Service<ServiceRequest>> {
 	service: S,
 	authorized: SubList,
 }
 
-impl<S, B> Service for SubjectFilterService<S>
+impl<S, B> Service<ServiceRequest> for SubjectFilterService<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static,
 {
-	type Request = S::Request;
-
 	type Response = S::Response;
 
 	type Error = S::Error;
@@ -51,13 +47,12 @@ where
 	type Future = future::LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
 	fn poll_ready(
-		&mut self,
-		ctx: &mut std::task::Context<'_>,
+		&self, ctx: &mut std::task::Context<'_>,
 	) -> std::task::Poll<Result<(), Self::Error>> {
 		self.service.poll_ready(ctx)
 	}
 
-	fn call(&mut self, req: Self::Request) -> Self::Future {
+	fn call(&self, req: ServiceRequest) -> Self::Future {
 		let ext = req.head().extensions();
 		//Get the AuthToken
 		let subject = ext.get::<AuthToken>().map(|token| token.sub());

@@ -18,8 +18,7 @@ mod datetime {
 	use super::DateTime;
 
 	pub(super) fn serialize<S: serde::Serializer>(
-		tstamp: &DateTime,
-		ser: S,
+		tstamp: &DateTime, ser: S,
 	) -> Result<S::Ok, S::Error> {
 		ser.serialize_str(&*tstamp.to_rfc3339())
 	}
@@ -34,14 +33,12 @@ mod datetime {
 
 pub(crate) struct JWTAuth(pub(crate) Pin<SharedPointer<Key>>);
 
-impl<S, B> dev::Transform<S> for JWTAuth
+impl<S, B> dev::Transform<S, ServiceRequest> for JWTAuth
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static,
 {
-	type Request = S::Request;
-
 	type Response = S::Response;
 
 	type Error = S::Error;
@@ -60,19 +57,17 @@ where
 	}
 }
 
-pub struct JWTAuthService<S: Service> {
+pub struct JWTAuthService<S: Service<ServiceRequest>> {
 	pub(super) service: S,
 	pub(super) key: Pin<SharedPointer<Key>>,
 }
 
-impl<S, B> Service for JWTAuthService<S>
+impl<S, B> Service<ServiceRequest> for JWTAuthService<S>
 where
-	S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = AxError>,
 	S::Future: 'static,
 	B: 'static,
 {
-	type Request = S::Request;
-
 	type Response = S::Response;
 
 	type Error = S::Error;
@@ -81,13 +76,12 @@ where
 	type Future = future::LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
 	fn poll_ready(
-		&mut self,
-		ctx: &mut std::task::Context<'_>,
+		&self, ctx: &mut std::task::Context<'_>,
 	) -> std::task::Poll<Result<(), Self::Error>> {
 		self.service.poll_ready(ctx)
 	}
 
-	fn call(&mut self, mut req: Self::Request) -> Self::Future {
+	fn call(&self, mut req: ServiceRequest) -> Self::Future {
 		//Authorization: Bearer <token>
 		//Check that the header exists
 		let header = if let Some(header) = req.headers().get(http::header::AUTHORIZATION) {
