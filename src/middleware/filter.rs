@@ -65,12 +65,18 @@ where
 					return Box::pin(self.service.call(req));
 				} else {
 					//Otherwise, return an error
-					Box::pin(future::err(
-						filter_error("Account is not authorized").into(),
+					std::mem::drop(ext);
+					Box::pin(future::ok(
+						req.error_response(filter_error("Account is not authorized")),
 					))
 				}
 			}
-			None => Box::pin(future::err(filter_error("Invalid JWT").into())),
+			None => {
+				std::mem::drop(ext);
+				Box::pin(future::ok(
+					req.error_response(filter_error("Account is not authorized")),
+				))
+			}
 		}
 	}
 }

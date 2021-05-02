@@ -1,6 +1,5 @@
 use super::prelude::*;
 use actix_web::http;
-use future::err;
 use sqlx::types::chrono;
 
 pub type Key = hmac::Hmac<sha2::Sha256>;
@@ -87,10 +86,12 @@ where
 		let header = if let Some(header) = req.headers().get(http::header::AUTHORIZATION) {
 			match header.to_str() {
 				Ok(header) => header,
-				Err(error) => return Box::pin(err(Error::from(error).into())),
+				Err(error) => return Box::pin(future::ok(req.error_response(Error::from(error)))),
 			}
 		} else {
-			return Box::pin(err(auth_error("Couldn't find Authorization header").into()));
+			return Box::pin(future::ok(
+				req.error_response(auth_error("Couldn't find Authorization header")),
+			));
 		};
 
 		//Check that the value starts with "Bearer ". If so, verify the jwt that comes after
@@ -99,10 +100,9 @@ where
 				use jwt::VerifyWithKey;
 				token.verify_with_key(self.key.as_ref().get_ref())
 			} else {
-				return Box::pin(err(auth_error(
+				return Box::pin(future::ok(req.error_response(auth_error(
 					"Authorization header doesn't start with \"Bearer \"",
-				)
-				.into()));
+				))));
 			};
 
 		//Check that the jwt hasn't expired
@@ -114,10 +114,12 @@ where
 					req.head_mut().extensions_mut().insert(claims);
 					Box::pin(self.service.call(req))
 				} else {
-					Box::pin(err(auth_error("JWT Token expired").into()))
+					Box::pin(future::ok(
+						req.error_response(auth_error("JWT Token expired")),
+					))
 				}
 			}
-			Err(error) => Box::pin(err(Error::from(error).into())),
+			Err(error) => Box::pin(future::ok(req.error_response(Error::from(error)))),
 		}
 	}
 }

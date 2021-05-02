@@ -93,14 +93,11 @@ where
 					 *we have to drop the references before using into_parts*/
 					drop(idempotency);
 					drop(ext);
-					Box::pin(future::err(
-						Error::Static {
-							status: StatusCode::OK,
-							reason: "IdempotencyCache",
-							message: "Request already responded",
-						}
-						.into(),
-					))
+					Box::pin(future::ok(req.error_response(Error::Static {
+						status: StatusCode::OK,
+						reason: "IdempotencyCache",
+						message: "Request already responded",
+					})))
 				} else {
 					/*Otherwise, create a future that will add the token
 					 *to the cache after having responded to the request*/
@@ -114,7 +111,10 @@ where
 					}))
 				}
 			}
-			None => Box::pin(future::err(idemp_error("Invalid JWT").into())),
+			None => {
+				std::mem::drop(ext);
+				Box::pin(future::ok(req.error_response(idemp_error("Invalid JWT"))))
+			}
 		}
 	}
 }
