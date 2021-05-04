@@ -7,17 +7,16 @@ import 'SocketAddress.dart';
 void main() async {
   dotenv.load();
 
-  var isolateCount = Platform.numberOfProcessors;
+  var isolateCount = dotenv.env['THREAD_COUNT'] == null ? Platform.numberOfProcessors : int.parse(dotenv.env['THREAD_COUNT']/*!*/);
   if (Platform.numberOfProcessors >= 8) {
     isolateCount ~/= 2;
   } else if (Platform.numberOfProcessors >= 4) {
     isolateCount = 4;
   }
 
-  
   final socket = SocketAddress(
     dotenv.env['SERVER_ADDRESS'] ?? InternetAddress.anyIPv4,
-    dotenv.env['SERVER_PORT'] == null ? 8080 : int.tryParse(dotenv.env['SERVER_PORT'])
+    dotenv.env['SERVER_PORT'] == null ? 8080 : int.parse(dotenv.env['SERVER_PORT']/*!*/)
   );
 
   for (var i = 0; i < isolateCount - 1; ++i) {
