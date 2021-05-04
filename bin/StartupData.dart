@@ -4,5 +4,5 @@ class StartupData {
   final SocketAddress socket;
   final String corsOrigin;
 
-  const StartupData({this.socket, this.corsOrigin = '*'});
+  const StartupData(this.socket, {this.corsOrigin = '*'});
 }
