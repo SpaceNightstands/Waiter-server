@@ -1,9 +1,9 @@
 import 'dart:io' show Platform, InternetAddress;
 import 'dart:isolate' show Isolate;
-import 'package:alfred/alfred.dart' show Alfred;
+import 'package:alfred/alfred.dart' show Alfred, cors;
 import 'package:dotenv/dotenv.dart' as dotenv;
 import 'SocketAddress.dart';
-import 'StartupData.dart';
+import 'ServerConfig.dart';
 
 void main() async {
   dotenv.load();
@@ -35,7 +35,14 @@ void main() async {
 void serverMain(ServerConfig serverConfig) async {
   final server = Alfred();
 
-  server.get('*', (request, response) => 'Hello, World!');
+  server.get(
+    '*',
+    cors(
+      headers: 'Authorization',
+      methods: 'GET, PUT, DELETE',
+      origin: serverConfig.corsOrigin
+    )
+  );
 
   await server.listen(serverConfig.socket.port, serverConfig.socket.address, true);
 }
