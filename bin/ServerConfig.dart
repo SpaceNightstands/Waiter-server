@@ -1,8 +1,8 @@
 import 'SocketAddress.dart';
 
-class StartupData {
+class ServerConfig {
   final SocketAddress socket;
   final String corsOrigin;
 
-  const StartupData(this.socket, {this.corsOrigin = '*'});
+  const ServerConfig(this.socket, {this.corsOrigin = '*'});
 }

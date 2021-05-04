@@ -17,7 +17,7 @@ void main() async {
     isolateCount = 4;
   }
 
-  final serverConfig = StartupData(
+  final serverConfig = ServerConfig(
     SocketAddress(
       dotenv.env['SERVER_ADDRESS'] ?? InternetAddress.anyIPv4,
       dotenv.env['SERVER_PORT'] == null
@@ -32,7 +32,7 @@ void main() async {
   serverMain(serverConfig);
 }
 
-void serverMain(StartupData serverConfig) async {
+void serverMain(ServerConfig serverConfig) async {
   final server = Alfred();
 
   server.get('*', (request, response) => 'Hello, World!');
