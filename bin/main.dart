@@ -44,5 +44,7 @@ void serverMain(ServerConfig serverConfig) async {
     )
   );
 
+  server.get('*', (req, res) => 'Hello, World!');
+
   await server.listen(serverConfig.socket.port, serverConfig.socket.address, true);
 }
