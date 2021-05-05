@@ -35,7 +35,7 @@ void main() async {
 void serverMain(ServerConfig serverConfig) async {
   final server = Alfred();
 
-  server.get(
+  server.all(
     '*',
     cors(
       headers: 'Authorization',
@@ -43,6 +43,8 @@ void serverMain(ServerConfig serverConfig) async {
       origin: serverConfig.corsOrigin
     )
   );
+  //TODO: Authentication
+  //TODO: Idempotency cache
 
   server.get('*', (req, res) => 'Hello, World!');
 
