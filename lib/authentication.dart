@@ -28,9 +28,9 @@ Handler authentication(String key) {
     try {
       token =
           await JsonWebToken.decodeAndVerify(serailizedToken, jsonWebKeyStore);
-    } on JoseException /*catch(exception)*/ {
+    } on JoseException catch(exception) {
       //TODO: return error
-      return 'error';
+      return exception.message;
     }
   };
 }
