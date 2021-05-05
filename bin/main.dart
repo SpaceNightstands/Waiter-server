@@ -2,6 +2,7 @@ import 'dart:io' show Platform, InternetAddress;
 import 'dart:isolate' show Isolate;
 import 'package:alfred/alfred.dart' show Alfred, cors;
 import 'package:dotenv/dotenv.dart' as dotenv;
+import '../lib/authentication.dart';
 import 'SocketAddress.dart';
 import 'ServerConfig.dart';
 
@@ -19,11 +20,10 @@ void main() async {
 
   final serverConfig = ServerConfig(
     SocketAddress(
-      dotenv.env['SERVER_ADDRESS'] ?? InternetAddress.anyIPv4,
-      dotenv.env['SERVER_PORT'] == null
-          ? 8080
-          : int.parse(dotenv.env['SERVER_PORT']!)
-    ),
+        dotenv.env['SERVER_ADDRESS'] ?? InternetAddress.anyIPv4,
+        dotenv.env['SERVER_PORT'] == null
+            ? 8080
+            : int.parse(dotenv.env['SERVER_PORT']!)),
   );
 
   for (var i = 0; i < isolateCount - 1; ++i) {
@@ -35,18 +35,19 @@ void main() async {
 void serverMain(ServerConfig serverConfig) async {
   final server = Alfred();
 
+  //CORS Middleware
   server.all(
-    '*',
-    cors(
-      headers: 'Authorization',
-      methods: 'GET, PUT, DELETE',
-      origin: serverConfig.corsOrigin
-    )
-  );
-  //TODO: Authentication
+      '*',
+      cors(
+          headers: 'Authorization',
+          methods: 'GET, PUT, DELETE',
+          origin: serverConfig.corsOrigin));
+  //Authentication
+  server.all('*', authentication);
   //TODO: Idempotency cache
 
   server.get('*', (req, res) => 'Hello, World!');
 
-  await server.listen(serverConfig.socket.port, serverConfig.socket.address, true);
+  await server.listen(
+      serverConfig.socket.port, serverConfig.socket.address, true);
 }
