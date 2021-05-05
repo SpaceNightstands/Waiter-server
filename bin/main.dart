@@ -10,7 +10,7 @@ void main() async {
 
   var isolateCount = dotenv.env['THREAD_COUNT'] == null
       ? Platform.numberOfProcessors
-      : int.parse(dotenv.env['THREAD_COUNT'] /*!*/);
+      : int.parse(dotenv.env['THREAD_COUNT']!);
   if (Platform.numberOfProcessors >= 8) {
     isolateCount ~/= 2;
   } else if (Platform.numberOfProcessors >= 4) {
@@ -22,7 +22,7 @@ void main() async {
       dotenv.env['SERVER_ADDRESS'] ?? InternetAddress.anyIPv4,
       dotenv.env['SERVER_PORT'] == null
           ? 8080
-          : int.parse(dotenv.env['SERVER_PORT'] /*!*/)
+          : int.parse(dotenv.env['SERVER_PORT']!)
     ),
   );
 
