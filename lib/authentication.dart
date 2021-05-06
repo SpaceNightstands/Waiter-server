@@ -2,7 +2,15 @@ import 'dart:io' show HttpHeaders;
 import 'dart:convert' show utf8;
 import 'package:jose/jose.dart'
     show JsonWebKey, JsonWebKeyStore, JsonWebToken, JoseException;
-import 'package:shelf/shelf.dart' show Handler, Middleware, Response;
+import 'package:shelf/shelf.dart' show Middleware, Response;
+
+class AuthToken {
+  final String subject;
+  final DateTime expiry;
+  final String idempotence;
+
+  const AuthToken(this.subject, this.expiry, this.idempotence);
+}
 
 Middleware authentication(String key) {
   final keyBytes = utf8.encode(key);
