@@ -1,9 +1,11 @@
 import 'dart:io' show Platform, InternetAddress, HttpHeaders;
 import 'dart:isolate' show Isolate;
-import 'package:shelf/shelf.dart' show Pipeline, Response;
+import 'dart:convert' show json;
+import 'package:shelf/shelf.dart' show Pipeline;
 import 'package:shelf/shelf_io.dart' show serve;
 import 'package:shelf_helpers/shelf_helpers.dart' show cors;
 import 'package:dotenv/dotenv.dart' as dotenv;
+import '../lib/jsonresponse.dart' show Response;
 import '../lib/authentication.dart';
 import 'SocketAddress.dart';
 import 'ServerConfig.dart';
@@ -36,21 +38,19 @@ void main() async {
 
 void serverMain(ServerConfig serverConfig) async {
   final handler = Pipeline()
-    //CORS Middleware
-    .addMiddleware(
-      cors(headers: {
+      //CORS Middleware
+      .addMiddleware(cors(headers: {
         'Access-Control-Allow-Origin': serverConfig.corsOrigin,
         'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
         'Access-Control-Allow-Headers':
             '${HttpHeaders.contentTypeHeader} ${HttpHeaders.authorizationHeader}'
-      })
-    )
-    //Authentication
-    .addMiddleware(authentication('test'))
-    //TODO: Idempotency cache
-    .addHandler((req) => Response.ok('Hello, World!'));
+      }))
+      //Authentication
+      .addMiddleware(authentication('test'))
+      //TODO: Idempotency cache
+      .addHandler((req) => Response.okFromJson(req.context['jwt']));
 
-
-    await serve(handler, serverConfig.socket.address, serverConfig.socket.port,
+  print('Starting server on ${serverConfig.socket.address}:${serverConfig.socket.port}');
+  await serve(handler, serverConfig.socket.address, serverConfig.socket.port,
       shared: true);
 }
