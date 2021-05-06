@@ -1,6 +1,8 @@
-import 'dart:io' show Platform, InternetAddress;
+import 'dart:io' show Platform, InternetAddress, HttpHeaders;
 import 'dart:isolate' show Isolate;
-import 'package:alfred/alfred.dart' show Alfred, cors;
+import 'package:shelf/shelf.dart' show Pipeline, Response;
+import 'package:shelf/shelf_io.dart' show serve;
+import 'package:shelf_helpers/shelf_helpers.dart' show cors;
 import 'package:dotenv/dotenv.dart' as dotenv;
 import '../lib/authentication.dart';
 import 'SocketAddress.dart';
@@ -33,21 +35,22 @@ void main() async {
 }
 
 void serverMain(ServerConfig serverConfig) async {
-  final server = Alfred();
+  final handler = Pipeline()
+    //CORS Middleware
+    .addMiddleware(
+      cors(headers: {
+        'Access-Control-Allow-Origin': serverConfig.corsOrigin,
+        'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
+        'Access-Control-Allow-Headers':
+            '${HttpHeaders.contentTypeHeader} ${HttpHeaders.authorizationHeader}'
+      })
+    )
+    //Authentication
+    .addMiddleware(authentication('test'))
+    //TODO: Idempotency cache
+    .addHandler((req) => Response.ok('Hello, World!'));
 
-  //CORS Middleware
-  server.all(
-      '*',
-      cors(
-          headers: 'Authorization',
-          methods: 'GET, PUT, DELETE',
-          origin: serverConfig.corsOrigin));
-  //Authentication
-  server.all('*', authentication);
-  //TODO: Idempotency cache
 
-  server.get('*', (req, res) => 'Hello, World!');
-
-  await server.listen(
-      serverConfig.socket.port, serverConfig.socket.address, true);
+    await serve(handler, serverConfig.socket.address, serverConfig.socket.port,
+      shared: true);
 }

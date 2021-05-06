@@ -7,7 +7,10 @@ environment:
   sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
-  alfred: ^0.1.4+1
+  shelf: ^1.1.1
+  shelf_router: ^1.0.0
+  shelf_helpers: 
+    git: https://github.com/Kleak/shelf_helpers.git
   dotenv: ^3.0.0-nullsafety.0
   jose: ^0.3.2
 #  path: ^1.7.0
