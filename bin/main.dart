@@ -39,6 +39,7 @@ void main() async {
 void serverMain(ServerConfig serverConfig) async {
   final handler = Pipeline()
       //CORS Middleware
+      //TODO: make my own CORS middleware
       .addMiddleware(cors(headers: {
         'Access-Control-Allow-Origin': serverConfig.corsOrigin,
         'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
