@@ -1,4 +1,4 @@
-class Error {
+class Error implements Exception {
   final String reason;
   final String message;
 
