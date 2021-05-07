@@ -5,7 +5,7 @@ import 'package:shelf/shelf_io.dart' show serve;
 import 'package:shelf_helpers/shelf_helpers.dart' show cors, CORSHeaders;
 import 'package:dotenv/dotenv.dart' as dotenv;
 import 'package:Waiter/ResponseJson.dart' show Response;
-import 'package:Waiter/Authentication.dart';
+import 'package:Waiter/Waiter.dart';
 import 'SocketAddress.dart';
 import 'ServerConfig.dart';
 import 'ConfigError.dart';

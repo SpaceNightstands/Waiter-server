@@ -1,9 +1,9 @@
 import 'package:shelf/shelf.dart' show Middleware;
-import 'ResponseJson.dart' show Response;
-import 'Error.dart';
+import 'package:actors/actors.dart' show Actor;
+import '../../ResponseJson.dart' show Response;
+import '../../Error.dart';
 
-Middleware idempotencyCache(String key) {
-
+Middleware idempotencyCache() {
   return (handler) => (request) async {
         return handler(request);
       };

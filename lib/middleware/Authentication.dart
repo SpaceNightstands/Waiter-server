@@ -2,8 +2,8 @@ import 'dart:io' show HttpHeaders;
 import 'dart:convert' show utf8;
 import 'package:jose/jose.dart';
 import 'package:shelf/shelf.dart' show Middleware;
-import 'ResponseJson.dart' show Response;
-import 'Error.dart';
+import '../ResponseJson.dart' show Response;
+import '../Error.dart';
 
 Middleware authentication(String key) {
   final keyBigint = stringToBigInt(key);
