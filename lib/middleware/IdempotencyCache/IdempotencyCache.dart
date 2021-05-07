@@ -1,5 +1,4 @@
 import 'package:shelf/shelf.dart' show Middleware;
-import 'package:actors/actors.dart' show Actor;
 import '../../ResponseJson.dart' show ResponseJson;
 import '../../Error.dart';
 
