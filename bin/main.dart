@@ -54,8 +54,13 @@ void serverMain(ServerConfig serverConfig) async {
       //TODO: Idempotency cache
       .addHandler((req) => Response.okFromJson(req.context['jwt']));
 
-  print(
-      'Starting server on ${serverConfig.socket.address}:${serverConfig.socket.port}');
-  await serve(handler, serverConfig.socket.address, serverConfig.socket.port,
-      shared: true);
+  await serve(
+    handler,
+    serverConfig.socket.address,
+    serverConfig.socket.port,
+    shared: true
+  ).then((server) {
+    print('Started server on ${server.address}:${server.port}');
+    return server;
+  });
 }
