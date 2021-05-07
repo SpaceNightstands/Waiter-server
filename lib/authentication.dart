@@ -71,7 +71,7 @@ class AuthToken {
         jwt['idempotency'] != null) {
       return AuthToken.fromParts(jwt.subject!, jwt.expiry!, jwt['idempotency']);
     } else {
-      throw AuthError('Failed JWT validation');
+      throw const AuthError('Failed JWT validation');
     }
   }
 
@@ -80,5 +80,5 @@ class AuthToken {
 }
 
 class AuthError extends Error {
-  AuthError(String message) : super('Authorization', message);
+  const AuthError(String message) : super('Authorization', message);
 }
