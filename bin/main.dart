@@ -2,7 +2,7 @@ import 'dart:io' show Platform, InternetAddress, HttpHeaders;
 import 'dart:isolate' show Isolate;
 import 'package:shelf/shelf.dart' show Pipeline;
 import 'package:shelf/shelf_io.dart' show serve;
-import 'package:shelf_helpers/shelf_helpers.dart' show cors;
+import 'package:shelf_helpers/shelf_helpers.dart' show cors, CORSHeaders;
 import 'package:dotenv/dotenv.dart' as dotenv;
 import 'package:Waiter/ResponseJson.dart' show Response;
 import 'package:Waiter/Authentication.dart';
@@ -44,9 +44,9 @@ void serverMain(ServerConfig serverConfig) async {
       //CORS Middleware
       //TODO: make my own CORS middleware
       .addMiddleware(cors(headers: {
-        'Access-Control-Allow-Origin': serverConfig.corsOrigin,
-        'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
-        'Access-Control-Allow-Headers':
+        CORSHeaders.allowedOriginsHeader: serverConfig.corsOrigin,
+        CORSHeaders.allowedMethodsHeader: 'GET, PUT, DELETE',
+        CORSHeaders.allowedHeadersHeader:
             '${HttpHeaders.contentTypeHeader} ${HttpHeaders.authorizationHeader}'
       }))
       //Authentication
