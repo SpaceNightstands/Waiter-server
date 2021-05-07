@@ -1,5 +1,5 @@
-import '../lib/error.dart' as waiter_error;
+import 'package:Waiter/error.dart' as waiter_error;
 
 class ConfigError extends waiter_error.Error {
-  ConfigError(String message) : super('Configuration', message);
+  const ConfigError(String message) : super('Configuration', message);
 }
