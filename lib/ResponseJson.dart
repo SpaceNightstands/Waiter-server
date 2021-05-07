@@ -1,9 +1,9 @@
 import 'dart:convert' show json, Encoding;
 import 'dart:io' show HttpHeaders, ContentType;
-import 'package:shelf/shelf.dart' as shelf;
+import 'package:shelf/shelf.dart' show Response;
 
-extension Response on shelf.Response {
-  static shelf.Response fromJson(
+extension ResponseJson on Response {
+  static Response fromJson(
     int statusCode,
     {
       Object? body,
@@ -12,7 +12,7 @@ extension Response on shelf.Response {
       Encoding? encoding,
       Map<String, Object>? context
     }
-  ) => shelf.Response(
+  ) => Response(
     statusCode,
     body: json.encode(body, toEncodable: toEncodable),
     headers: headers?..putIfAbsent(HttpHeaders.contentTypeHeader, ()=>ContentType.json),
@@ -20,7 +20,7 @@ extension Response on shelf.Response {
     context: context
   );
 
-  static shelf.Response okFromJson(
+  static Response okFromJson(
     Object? body,
     {
       Object? Function(dynamic)? toEncodable,
@@ -28,7 +28,7 @@ extension Response on shelf.Response {
       Encoding? encoding,
       Map<String, Object>? context
     }
-  ) => shelf.Response.ok(
+  ) => Response.ok(
     json.encode(body, toEncodable: toEncodable),
     headers: headers?..putIfAbsent(HttpHeaders.contentTypeHeader, ()=>ContentType.json),
     encoding: encoding,

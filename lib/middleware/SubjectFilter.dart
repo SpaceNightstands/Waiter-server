@@ -1,5 +1,5 @@
 import 'package:shelf/shelf.dart' show Middleware;
-import '../ResponseJson.dart' show Response;
+import '../ResponseJson.dart' show ResponseJson;
 import '../Error.dart';
 
 Middleware subjectFilter(List<String> key) {

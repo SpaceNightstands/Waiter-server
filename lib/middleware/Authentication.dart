@@ -2,7 +2,7 @@ import 'dart:io' show HttpHeaders;
 import 'dart:convert' show utf8;
 import 'package:jose/jose.dart';
 import 'package:shelf/shelf.dart' show Middleware;
-import '../ResponseJson.dart' show Response;
+import '../ResponseJson.dart' show ResponseJson;
 import '../Error.dart';
 
 Middleware authentication(String key) {
@@ -14,13 +14,13 @@ Middleware authentication(String key) {
         final header = request.headers[HttpHeaders.authorizationHeader];
 
         if (header == null) {
-          return Response.fromJson(400,
+          return ResponseJson.fromJson(400,
               body: AuthError(
                   '${HttpHeaders.authorizationHeader} header missing'));
         }
 
         if (!header.startsWith(RegExp(r'[Bb]earer '))) {
-          return Response.fromJson(400,
+          return ResponseJson.fromJson(400,
               body: AuthError(
                   "${HttpHeaders.authorizationHeader} doesn't start with \"Bearer \""));
         }
@@ -31,7 +31,7 @@ Middleware authentication(String key) {
           jwToken = await JsonWebToken.decodeAndVerify(
               serializedToken, jsonWebKeyStore);
         } on JoseException catch (exception) {
-          return Response.fromJson(400, body: AuthError(exception.message));
+          return ResponseJson.fromJson(400, body: AuthError(exception.message));
         }
 
         //TODO: check expiration timestamp
@@ -40,7 +40,7 @@ Middleware authentication(String key) {
         try {
           newContext['jwt'] = AuthToken(jwToken.claims);
         } on AuthError catch (error) {
-          return Response.fromJson(400, body: error);
+          return ResponseJson.fromJson(400, body: error);
         }
 
         return handler(request.change(context: newContext));

@@ -4,7 +4,7 @@ import 'package:shelf/shelf.dart' show Pipeline;
 import 'package:shelf/shelf_io.dart' show serve;
 import 'package:shelf_helpers/shelf_helpers.dart' show cors, CORSHeaders;
 import 'package:dotenv/dotenv.dart' as dotenv;
-import 'package:Waiter/ResponseJson.dart' show Response;
+import 'package:Waiter/ResponseJson.dart' show ResponseJson;
 import 'package:Waiter/Waiter.dart';
 import 'SocketAddress.dart';
 import 'ServerConfig.dart';
@@ -52,7 +52,7 @@ void serverMain(ServerConfig serverConfig) async {
       //Authentication
       .addMiddleware(authentication('test'))
       //TODO: Idempotency cache
-      .addHandler((req) => Response.okFromJson(req.context['jwt']));
+      .addHandler((req) => ResponseJson.okFromJson(req.context['jwt']));
 
   await serve(
     handler,
