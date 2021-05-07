@@ -2,13 +2,11 @@ import 'dart:io' show HttpHeaders;
 import 'dart:convert' show utf8;
 import 'package:jose/jose.dart';
 import 'package:shelf/shelf.dart' show Middleware;
-import 'jsonresponse.dart' show Response;
-import 'error.dart';
+import 'ResponseJson.dart' show Response;
+import 'Error.dart';
 
 Middleware authentication(String key) {
-  final keyBytes = utf8.encode(key);
-  final keyBigint = keyBytes.fold(
-      BigInt.zero, (BigInt bigint, byte) => (bigint << 8) | BigInt.from(byte));
+  final keyBigint = stringToBigInt(key);
   final jsonWebKey = JsonWebKey.symmetric(key: keyBigint);
   final jsonWebKeyStore = JsonWebKeyStore()..addKey(jsonWebKey);
 
@@ -16,17 +14,15 @@ Middleware authentication(String key) {
         final header = request.headers[HttpHeaders.authorizationHeader];
 
         if (header == null) {
-          return Response.fromJson(
-            400,
-            body: AuthError('${HttpHeaders.authorizationHeader} header missing')
-          );
+          return Response.fromJson(400,
+              body: AuthError(
+                  '${HttpHeaders.authorizationHeader} header missing'));
         }
 
         if (!header.startsWith(RegExp(r'[Bb]earer '))) {
-          return Response.fromJson(
-            400,
-            body: AuthError("${HttpHeaders.authorizationHeader} doesn't start with \"Bearer \"")
-          );
+          return Response.fromJson(400,
+              body: AuthError(
+                  "${HttpHeaders.authorizationHeader} doesn't start with \"Bearer \""));
         }
 
         final serializedToken = header.substring('bearer '.length).trim();
@@ -35,10 +31,7 @@ Middleware authentication(String key) {
           jwToken = await JsonWebToken.decodeAndVerify(
               serializedToken, jsonWebKeyStore);
         } on JoseException catch (exception) {
-          return Response.fromJson(
-            400,
-            body: AuthError(exception.message)
-          );
+          return Response.fromJson(400, body: AuthError(exception.message));
         }
 
         //TODO: check expiration timestamp
@@ -50,12 +43,15 @@ Middleware authentication(String key) {
           return Response.fromJson(400, body: error);
         }
 
-        return handler(
-          request.change(
-            context: newContext
-          )
-        );
+        return handler(request.change(context: newContext));
       };
+}
+
+BigInt stringToBigInt(String source) {
+  final bytes = utf8.encode(source);
+  final bigint = bytes.fold(
+      BigInt.zero, (BigInt accumulator, byte) => (accumulator << 8) | BigInt.from(byte));
+  return bigint;
 }
 
 class AuthToken {
@@ -71,7 +67,7 @@ class AuthToken {
         jwt['idempotency'] != null) {
       return AuthToken.fromParts(jwt.subject!, jwt.expiry!, jwt['idempotency']);
     } else {
-      throw AuthError('Failed JWT validation');
+      throw const AuthError('Failed JWT validation');
     }
   }
 
@@ -80,5 +76,5 @@ class AuthToken {
 }
 
 class AuthError extends Error {
-  AuthError(String message) : super('Authorization', message);
+  const AuthError(String message) : super('Authorization', message);
 }
