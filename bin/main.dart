@@ -13,13 +13,16 @@ import 'ConfigError.dart';
 void main() async {
   dotenv.load();
 
-  var isolateCount = dotenv.env['THREAD_COUNT'] == null
-      ? Platform.numberOfProcessors
-      : int.parse(dotenv.env['THREAD_COUNT']!);
-  if (Platform.numberOfProcessors >= 8) {
-    isolateCount ~/= 2;
-  } else if (Platform.numberOfProcessors >= 4) {
-    isolateCount = 4;
+  var isolateCount;
+  if (dotenv.env['THREAD_COUNT'] == null) {
+    isolateCount = Platform.numberOfProcessors;
+    if (Platform.numberOfProcessors >= 8) {
+      isolateCount ~/= 2;
+    } else if (Platform.numberOfProcessors >= 4) {
+      isolateCount = 4;
+    }
+  } else {
+    isolateCount = dotenv.env['THREAD_COUNT']!;
   }
 
   if (dotenv.env['JWT_SECRET'] == null) {
@@ -54,12 +57,9 @@ void serverMain(ServerConfig serverConfig) async {
       //TODO: Idempotency cache
       .addHandler((req) => ResponseJson.okFromJson(req.context['jwt']));
 
-  await serve(
-    handler,
-    serverConfig.socket.address,
-    serverConfig.socket.port,
-    shared: true
-  ).then((server) {
+  await serve(handler, serverConfig.socket.address, serverConfig.socket.port,
+          shared: true)
+      .then((server) {
     print('Started server on ${server.address}:${server.port}');
     return server;
   });
