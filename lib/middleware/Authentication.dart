@@ -26,9 +26,9 @@ Middleware authentication(String key) {
         }
 
         final serializedToken = header.substring('bearer '.length).trim();
-        final JsonWebToken jwToken;
+        final JsonWebToken jwtToken;
         try {
-          jwToken = await JsonWebToken.decodeAndVerify(
+          jwtToken = await JsonWebToken.decodeAndVerify(
               serializedToken, jsonWebKeyStore);
         } on JoseException catch (exception) {
           return ResponseJson.fromJson(400, body: AuthError(exception.message));
@@ -38,7 +38,7 @@ Middleware authentication(String key) {
         //Constructor does schema validation
         final newContext = Map.of(request.context);
         try {
-          newContext['jwt'] = AuthToken(jwToken.claims);
+          newContext['jwt'] = AuthToken(jwtToken.claims);
         } on AuthError catch (error) {
           return ResponseJson.fromJson(400, body: error);
         }
