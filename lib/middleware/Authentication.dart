@@ -55,17 +55,17 @@ BigInt stringToBigInt(String source) {
 }
 
 class AuthToken {
-  final String subject;
-  final DateTime expiry;
-  final String idempotency;
+  late final String subject;
+  late final DateTime expiry;
+  late final String idempotency;
 
-  const AuthToken.fromParts(this.subject, this.expiry, this.idempotency);
+  AuthToken.fromParts(this.subject, this.expiry, this.idempotency);
 
-  factory AuthToken(JsonWebTokenClaims jwt) {
+  AuthToken(JsonWebTokenClaims jwt) {
     if (jwt.subject != null &&
         jwt.expiry != null &&
         jwt['idempotency'] != null) {
-      return AuthToken.fromParts(jwt.subject!, jwt.expiry!, jwt['idempotency']);
+      AuthToken.fromParts(jwt.subject!, jwt.expiry!, jwt['idempotency']);
     } else {
       throw const AuthError('Failed JWT validation');
     }
